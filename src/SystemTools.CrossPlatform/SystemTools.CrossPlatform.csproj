@@ -12,25 +12,10 @@
         <OutputType>Library</OutputType>
     </PropertyGroup>
 
-    <PropertyGroup>
-        <ClassIslandSourceRoot Condition="'$(ClassIslandSourceRoot)' == ''">E:\ClassIsland-git-misha</ClassIslandSourceRoot>
-        <UseLocalClassIslandSdk Condition="'$(UseLocalClassIslandSdk)' == ''">false</UseLocalClassIslandSdk>
-        <ClassIslandPluginSdkVersion Condition="'$(ClassIslandPluginSdkVersion)' == ''">2.1.1.1</ClassIslandPluginSdkVersion>
-    </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="ClassIsland.PluginSdk"
-                          Version="$(ClassIslandPluginSdkVersion)"
-                          Condition="'$(UseLocalClassIslandSdk)' != 'true' Or !Exists('$(ClassIslandSourceRoot)\ClassIsland.PluginSdk\ClassIsland.PluginSdk.csproj')">
+        <PackageReference Include="ClassIsland.PluginSdk" Version="2.1.1.1">
             <ExcludeAssets>runtime;native</ExcludeAssets>
         </PackageReference>
-
-        <ProjectReference Include="$(ClassIslandSourceRoot)\ClassIsland.PluginSdk\ClassIsland.PluginSdk.csproj"
-                          Condition="'$(UseLocalClassIslandSdk)' == 'true' And Exists('$(ClassIslandSourceRoot)\ClassIsland.PluginSdk\ClassIsland.PluginSdk.csproj')">
-            <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-            <Private>false</Private>
-            <GlobalPropertiesToRemove>CreateCipx</GlobalPropertiesToRemove>
-        </ProjectReference>
 
         <PackageReference Include="Avalonia" Version="12.1.1">
             <ExcludeAssets>runtime;native</ExcludeAssets>
@@ -95,13 +80,4 @@
       <AdditionalFiles Remove="cipx\**" />
     </ItemGroup>
 
-    <Target Name="VerifyClassIslandSource"
-            BeforeTargets="PrepareForBuild"
-            Condition="'$(UseLocalClassIslandSdk)' == 'true'">
-        <Error Condition="!Exists('$(ClassIslandSourceRoot)\ClassIsland.PluginSdk\ClassIsland.PluginSdk.csproj')"
-               Text="ClassIsland source checkout was not found at '$(ClassIslandSourceRoot)'. Set ClassIslandSourceRoot to a valid checkout or build with UseLocalClassIslandSdk=false." />
-    </Target>
-
-    <Import Project="$(ClassIslandSourceRoot)\ClassIsland.PluginSdk\ClassIsland.PluginSdk.targets"
-            Condition="'$(UseLocalClassIslandSdk)' == 'true' And Exists('$(ClassIslandSourceRoot)\ClassIsland.PluginSdk\ClassIsland.PluginSdk.targets')" />
 </Project>
