@@ -32,7 +32,8 @@ namespace SystemTools.CrossPlatform.Services;
 ///    配置兼容，运行时不消费（p2-05 §2.1 #6 已批口径）；
 /// 4. 液态玻璃材质与背景采样、自适应背景主题采样按 U5/R-6 已批降级不迁；经典外观的窗口底色/
 ///    不透明度/阴影绘制面（源自源经典分支）保留为 ApplyWindowAppearance；
-/// 5. 自适应主题值（3）在无采样路径下解析为跟随宿主明暗（ResolveWindowThemeVariant 回退语义）。
+/// 5. 「自适应背景」主题项已移除：主题仅保留 0=跟随 ClassIsland/1=浅色/2=深色；旧配置值 3 由
+///    MainConfigData 归一为 0（与 U5 降级语义一致：值 3 原即解析为跟随宿主明暗）。
 /// 降级处置逐条登记见 p2-03 批证据；窗口刷新路径恢复供 A3/A4 回归（p1-03 §7-5 交接）。
 /// </summary>
 public class FloatingWindowService
@@ -40,7 +41,6 @@ public class FloatingWindowService
     private const int FollowClassIslandTheme = 0;
     private const int LightTheme = 1;
     private const int DarkTheme = 2;
-    private const int AdaptiveBackgroundTheme = 3;
     private static readonly TimeSpan TouchLikeMouseGracePeriod = TimeSpan.FromMilliseconds(250);
 
     private readonly MainConfigHandler _configHandler;
@@ -50,7 +50,6 @@ public class FloatingWindowService
     private Grid? _windowRoot;
     private StackPanel? _stackPanel;
     private Border? _windowContainer;
-    private ThemeVariant? _adaptiveBackgroundThemeVariant;
     private bool _windowBoundsClampQueued;
     private bool _pointerPressed;
     private bool _dragInitiated;
@@ -261,15 +260,12 @@ public class FloatingWindowService
 
     private ThemeVariant ResolveWindowThemeVariant()
     {
-        // 自适应主题值（3）按 R-6 已批降级：无背景采样路径时自适应变体恒为空，
-        // 回退语义 = 跟随宿主明暗（与源“采样不可用回退宿主变体”一致）。
+        // 「自适应背景」项已移除：主题仅 0/1/2（旧配置 3 由 MainConfigData 归一为 0）。
+        // 0=跟随 ClassIsland 与默认分支一致，取窗口/应用当前明暗变体。
         return _configHandler.Data.FloatingWindowTheme switch
         {
             LightTheme => ThemeVariant.Light,
             DarkTheme => ThemeVariant.Dark,
-            AdaptiveBackgroundTheme => _adaptiveBackgroundThemeVariant
-                                       ?? Application.Current?.ActualThemeVariant
-                                       ?? ThemeVariant.Dark,
             _ => _window?.ActualThemeVariant ?? Application.Current?.ActualThemeVariant ?? ThemeVariant.Dark
         };
     }
@@ -282,10 +278,10 @@ public class FloatingWindowService
     /// <summary>
     /// 设置悬浮窗主题
     /// </summary>
-    /// <param name="theme">0=跟随 ClassIsland, 1=浅色, 2=深色, 3=自适应背景（降级为跟随宿主明暗）</param>
+    /// <param name="theme">0=跟随 ClassIsland, 1=浅色, 2=深色（自适应背景项已移除，旧值 3 归一为 0）</param>
     public void SetWindowTheme(int theme)
     {
-        var normalized = theme is LightTheme or DarkTheme or AdaptiveBackgroundTheme
+        var normalized = theme is LightTheme or DarkTheme
             ? theme
             : FollowClassIslandTheme;
         if (_configHandler.Data.FloatingWindowTheme == normalized)
@@ -303,7 +299,7 @@ public class FloatingWindowService
     /// </summary>
     public void ToggleWindowTheme()
     {
-        var next = (_configHandler.Data.FloatingWindowTheme + 1) % 4;
+        var next = (_configHandler.Data.FloatingWindowTheme + 1) % 3;
         SetWindowTheme(next);
     }
 
@@ -476,11 +472,6 @@ public class FloatingWindowService
 
     private void OnConfigPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainConfigData.FloatingWindowTheme))
-        {
-            _adaptiveBackgroundThemeVariant = null;
-        }
-
         if (e.PropertyName is nameof(MainConfigData.FloatingWindowOpacity)
             or nameof(MainConfigData.FloatingWindowTheme)
             or nameof(MainConfigData.FloatingWindowScale)

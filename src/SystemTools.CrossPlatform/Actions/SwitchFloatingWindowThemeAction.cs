@@ -19,7 +19,6 @@ public class SwitchFloatingWindowThemeAction(ILogger<SwitchFloatingWindowThemeAc
     private const int FollowClassIslandTheme = 0;
     private const int LightTheme = 1;
     private const int DarkTheme = 2;
-    private const int AdaptiveBackgroundTheme = 3;
 
     private readonly ILogger<SwitchFloatingWindowThemeAction> _logger = logger;
     private static readonly ConcurrentDictionary<Guid, int> PreviousThemes = new();
@@ -93,7 +92,8 @@ public class SwitchFloatingWindowThemeAction(ILogger<SwitchFloatingWindowThemeAc
 
     // 阶段 1 适配：源实现经悬浮窗服务（阶段 2 B 档交付）设置主题；此处以 MainConfig 配置状态面
     // 执行等价设置（含与源一致的取值归一化语义），窗口刷新路径随悬浮窗服务交付后恢复。
-    // 主题取值 3（自适应背景）仅为配置状态；背景采样渲染路径按 U5 决议不在本期迁移。
+    // 「自适应背景」主题项（取值 3）已移除（背景采样路径按 U5 决议不迁移）；旧行动配置中的目标值
+    // 3 归一为 0=跟随 ClassIsland（与源降级语义一致）。
     private void SetWindowTheme(int theme)
     {
         var configHandler = GlobalConstants.MainConfig;
@@ -103,7 +103,7 @@ public class SwitchFloatingWindowThemeAction(ILogger<SwitchFloatingWindowThemeAc
             return;
         }
 
-        var normalized = theme is LightTheme or DarkTheme or AdaptiveBackgroundTheme
+        var normalized = theme is LightTheme or DarkTheme
             ? theme
             : FollowClassIslandTheme;
         if (configHandler.Data.FloatingWindowTheme == normalized)
@@ -124,7 +124,7 @@ public class SwitchFloatingWindowThemeAction(ILogger<SwitchFloatingWindowThemeAc
             return;
         }
 
-        var next = (config.FloatingWindowTheme + 1) % 4;
+        var next = (config.FloatingWindowTheme + 1) % 3;
         SetWindowTheme(next);
     }
 
@@ -135,7 +135,6 @@ public class SwitchFloatingWindowThemeAction(ILogger<SwitchFloatingWindowThemeAc
             0 => "跟随系统",
             1 => "浅色",
             2 => "深色",
-            3 => "自适应背景",
             _ => "未知"
         };
     }

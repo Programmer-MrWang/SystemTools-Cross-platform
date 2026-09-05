@@ -4,9 +4,6 @@
                      xmlns:ci="http://classisland.tech/schemas/xaml/core"
                      xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
                      x:CompileBindings="False">
-    <!-- 悬浮窗编辑页：配置方案（随源布局）+ 按钮行编辑器（无拖拽排序，行/按钮规则集经抽屉编辑）
-         + 经典外观设置 + 层级设置 + 按规则隐藏。液态玻璃外观与按钮行拖拽为原版 Windows 专属面，
-         不随迁；主题第 4 项「自适应背景」在当前版本跟随 ClassIsland 明暗。 -->
     <ScrollViewer>
         <StackPanel Classes="settings-container animated-intro">
 
@@ -24,14 +21,12 @@
                 <TextBlock VerticalAlignment="Center" FontSize="28">设置 · 悬浮窗</TextBlock>
             </StackPanel>
 
-            <!-- 方案管理 + 显示开关（随源：位于「悬浮窗按钮布局」卡内首行） -->
-<!-- W6 显示悬浮窗开关 + W7 按钮布局编辑器（新 expander；源 axaml:42-197 非拖拽子集） -->
             <controls:FASettingsExpander IconSource="{ci:FluentIconSource &#xEA37;}"
                                          Header="悬浮窗按钮布局"
                                          Description="管理悬浮窗按钮行与按钮的显示、规则集；可通过添加行实现纵列排布等功能"
                                          IsExpanded="True">
                 <StackPanel Margin="12,8,12,12" Spacing="8">
-                    <!-- 配置方案（随源：方案下拉 + 新建/打开配置文件夹/删除当前方案） + 显示悬浮窗开关 -->
+                    
                     <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                         <ci:Field Grid.Column="0" Label="配置方案">
                             <StackPanel Orientation="Horizontal" Spacing="4">
@@ -158,7 +153,6 @@
                 </StackPanel>
             </controls:FASettingsExpander>
 
-            <!-- W8-W14 外观设置（源 axaml:199-417 经典外观子集；C16/C17 液态玻璃外观面零残留） -->
             <controls:FASettingsExpander IconSource="{ci:FluentIconSource &#xE51E;}"
                                        Header="外观设置"
                                        Description="设置悬浮窗外观"
@@ -242,10 +236,9 @@
                     </controls:FASettingsExpanderItem.Footer>
                 </controls:FASettingsExpanderItem>
 
-                <!-- W12 主题（源 axaml:381-400 四项随源；第 4 项 D5 已批降级映射注记） -->
                 <controls:FASettingsExpanderItem IconSource="{ci:FluentIconSource &#xE5CB;}"
                                                Content="主题"
-                                               Description="设置悬浮窗主题。「自适应背景」在当前版本中跟随 ClassIsland 主界面的明暗。">
+                                               Description="设置悬浮窗主题。">
                     <controls:FASettingsExpanderItem.Footer>
                         <ComboBox SelectedIndex="{Binding ViewModel.Settings.FloatingWindowTheme, Mode=TwoWay}">
                             <ComboBoxItem>
@@ -256,9 +249,6 @@
                             </ComboBoxItem>
                             <ComboBoxItem>
                                 <ci:IconText Glyph="&#xF44B;" Text="黑暗" />
-                            </ComboBoxItem>
-                            <ComboBoxItem>
-                                <ci:IconText Glyph="&#xE520;" Text="自适应背景" />
                             </ComboBoxItem>
                         </ComboBox>
                     </controls:FASettingsExpanderItem.Footer>
@@ -281,7 +271,6 @@
                 </controls:FASettingsExpanderItem>
             </controls:FASettingsExpander>
 
-            <!-- W15/W16 悬浮窗层级（源 axaml:419-467；W16 附 R-3 降级注记） -->
             <controls:FASettingsExpander IconSource="{ci:FluentIconSource &#xEA2F;}"
                                        Header="悬浮窗层级"
                                        Description="悬浮窗在屏幕上的层级。置底则会显示在所有窗口的后方，置顶则将显示在所有窗口的前方。"
@@ -329,7 +318,6 @@
                 </controls:FASettingsExpanderItem>
             </controls:FASettingsExpander>
 
-            <!-- W17 按规则隐藏（源 axaml:469-486；成员 floatingWindowRulesetEnabled/floatingWindowRuleset） -->
             <controls:FASettingsExpander IconSource="{ci:FluentIconSource &#xEFBF;}"
                                        Header="按规则隐藏"
                                        Description="在指定规则满足时，自动隐藏悬浮窗。此为全局设置，不随配置方案切换。">

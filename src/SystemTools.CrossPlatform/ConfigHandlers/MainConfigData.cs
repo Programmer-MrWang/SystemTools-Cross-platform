@@ -26,7 +26,8 @@ public class MainConfigData : INotifyPropertyChanged
         get => _floatingWindowTheme;
         set
         {
-            var normalized = value is 1 or 2 or 3 ? value : 0;
+            // 「自适应背景」主题项（取值 3）已移除；旧配置中的 3 在读取/写入时统一归一为 0（跟随 ClassIsland）。
+            var normalized = value is 1 or 2 ? value : 0;
             if (normalized == _floatingWindowTheme) return;
             _floatingWindowTheme = normalized;
             OnPropertyChanged();

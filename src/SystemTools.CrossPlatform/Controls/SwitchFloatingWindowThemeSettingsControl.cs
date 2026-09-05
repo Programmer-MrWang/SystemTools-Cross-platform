@@ -30,14 +30,13 @@ public class SwitchFloatingWindowThemeSettingsControl : ActionSettingsControlBas
         _themeComboBox.Items.Add(new ComboBoxItem { Content = "跟随系统", Tag = 0 });
         _themeComboBox.Items.Add(new ComboBoxItem { Content = "浅色", Tag = 1 });
         _themeComboBox.Items.Add(new ComboBoxItem { Content = "深色", Tag = 2 });
-        _themeComboBox.Items.Add(new ComboBoxItem { Content = "自适应背景", Tag = 3 });
         _themeComboBox.SelectedIndex = 0;
 
         panel.Children.Add(_themeComboBox);
 
         panel.Children.Add(new TextBlock
         {
-            Text = "提示：选择\"切换到下一个\"会按 跟随系统→浅色→深色→自适应背景→跟随系统 循环切换，选择具体主题会直接设置到该主题。",
+            Text = "提示：选择\"切换到下一个\"会按 跟随系统→浅色→深色→跟随系统 循环切换，选择具体主题会直接设置到该主题。",
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
             Opacity = 0.7,
             FontSize = 12
@@ -63,12 +62,13 @@ public class SwitchFloatingWindowThemeSettingsControl : ActionSettingsControlBas
     {
         if (Settings == null) return;
 
+        // 旧行动配置中的目标值 3（自适应背景，已移除）按 0=跟随系统 恢复显示。
         var index = Settings.TargetTheme switch
         {
             0 => 1,
             1 => 2,
             2 => 3,
-            3 => 4,
+            3 => 1,
             _ => 0
         };
         _themeComboBox.SelectedIndex = index;
