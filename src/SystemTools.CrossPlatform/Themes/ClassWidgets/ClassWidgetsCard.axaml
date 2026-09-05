@@ -88,7 +88,7 @@
              always shown: the host background-material switch belongs to the excluded
              liquid-glass surface and is not referenced (U5 downgrade; the switch also
              does not exist in the NuGet fallback ClassIsland.Core build). -->
-        <Border BorderThickness="1"
+        <!-- <Border BorderThickness="1"
                 IsHitTestVisible="False"
                 CornerRadius="{Binding $self.(assists:MainWindowStylesAssist.CornerRadius),
                                        Converter={StaticResource ClassWidgetsCardCornerRadiusConverter},
@@ -101,7 +101,7 @@
                     <GradientStop Offset="1" Color="#58FFFFFF" />
                 </LinearGradientBrush>
             </Border.BorderBrush>
-        </Border>
+        </Border> -->
 
         <Grid x:Name="CardContentGrid"
               Margin="16 11 16 10"
