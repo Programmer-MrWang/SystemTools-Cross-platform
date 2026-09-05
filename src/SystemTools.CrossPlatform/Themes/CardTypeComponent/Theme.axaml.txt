@@ -60,20 +60,25 @@
         <Setter Property="ClipToBounds" Value="False" />
     </Style>
 
-    <!-- Use the same material surface as ClassIsland's Fluent theme. The control
-         consumes inherited line/component settings and avoids double-applying
-         opacity while native material is active. -->
-    <Style Selector="coreControls|MainWindowBackgroundMaterialControl.cardtype-native-background">
-        <Setter Property="Opacity" Value="{Binding $self.EffectiveBackgroundOpacity, Mode=OneWay}" />
-        <Setter Property="FallbackBrush" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
+    <!-- The card surface is an ordinary border that always renders the default
+         (no native material) look. ClassIsland's composition material surface is
+         Windows-only and is not available on macOS/Linux, so these themes no
+         longer join the host background-material feature: no
+         MainWindowBackgroundMaterialControl/EffectiveBackgroundOpacity usage.
+         Ordinary background color/opacity/corner-radius customization (which
+         works on every platform) still flows through the inherited assists. -->
+    <Style Selector="Border.cardtype-native-background">
+        <Setter Property="Opacity"
+                Value="{Binding $self.(assists:MainWindowStylesAssist.BackgroundOpacity), Mode=OneWay}" />
+        <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" />
         <Setter Property="CornerRadius"
                 Value="{Binding $self.(assists:MainWindowStylesAssist.CornerRadius),
                                 Converter={StaticResource CardTypeCornerRadiusConverter},
                                 ConverterParameter=1.0,
                                 Mode=OneWay}" />
     </Style>
-    <Style Selector="coreControls|MainWindowBackgroundMaterialControl[(assists|MainWindowStylesAssist.IsCustomBackgroundColorEnabled)=True].cardtype-native-background">
-        <Setter Property="FallbackBrush"
+    <Style Selector="Border[(assists|MainWindowStylesAssist.IsCustomBackgroundColorEnabled)=True].cardtype-native-background">
+        <Setter Property="Background"
                 Value="{Binding $self.(assists:MainWindowStylesAssist.BackgroundColor),
                                 Converter={StaticResource ColorToColorPickerBrushConverter},
                                 Mode=OneWay}" />
@@ -151,8 +156,7 @@
                         </Grid>
 
                         <Grid x:Name="GridOverlay" ClipToBounds="True" Opacity="0">
-                            <coreControls:MainWindowBackgroundMaterialControl
-                                Classes="cardtype-native-background"
+                            <Border Classes="cardtype-native-background"
                                 IsHitTestVisible="False" />
                             <Border ClipToBounds="True" IsHitTestVisible="False">
                                 <Canvas x:Name="ProgressContainer"
@@ -259,8 +263,7 @@
             <Setter Property="ContentTemplate">
                 <DataTemplate>
                     <Panel Height="60" ClipToBounds="False">
-                        <coreControls:MainWindowBackgroundMaterialControl
-                            Classes="cardtype-native-background"
+                        <Border Classes="cardtype-native-background"
                             Height="60"
                             IsHitTestVisible="False" />
                         <Border Height="60"
