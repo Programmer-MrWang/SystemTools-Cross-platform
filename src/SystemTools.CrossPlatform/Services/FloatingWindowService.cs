@@ -772,14 +772,8 @@ public class FloatingWindowService
 
             foreach (var entry in rowEntries)
             {
-                var iconBlock = new FluentIcon
-                {
-                    Glyph = ConvertIcon(entry.Icon),
-                    FontSize = iconSize,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Foreground = contentForeground
-                };
+                var iconBlock = FloatingWindowIconProvider.CreateIconControl(
+                    entry.Icon, iconSize, contentForeground);
 
                 var nameBlock = new TextBlock
                 {
@@ -1540,22 +1534,6 @@ public class FloatingWindowService
         {
             return null;
         }
-    }
-
-    public static string ConvertIcon(string raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw)) return "\uEA37";
-        var v = raw.Trim();
-        if (v.StartsWith("/u", StringComparison.OrdinalIgnoreCase) || v.StartsWith("\\u", StringComparison.OrdinalIgnoreCase))
-        {
-            var hex = v[2..];
-            if (int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out var code))
-            {
-                return char.ConvertFromUtf32(code);
-            }
-        }
-
-        return v;
     }
 
     private static IBrush? TryGetButtonPointerOverBrush()

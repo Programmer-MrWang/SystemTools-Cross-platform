@@ -38,16 +38,10 @@ public partial class FloatingTriggerItem : ObservableObject
     [ObservableProperty] private ButtonRulesetConfig _config = new();
 
     /// <summary>
-    /// FluentIconSource，供 IconSourceElement 使用（源 SystemToolsSettingsViewModel.cs:62-74 随源）。
+    /// 图标表达式解析出的图标源，供 IconSourceElement 显示。兼容旧版 /uXXXX 配置（源随源）。
     /// </summary>
-    public ClassIsland.Core.Controls.FluentIconSource? IconSource
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Icon)) return null;
-            return new ClassIsland.Core.Controls.FluentIconSource { Glyph = Icon };
-        }
-    }
+    public FluentAvalonia.UI.Controls.FAIconSource? IconSource =>
+        Services.FloatingWindowIconProvider.TryResolveIconSource(Icon);
 
     partial void OnIconChanged(string value) { OnPropertyChanged(nameof(IconSource)); }
 }
@@ -386,7 +380,7 @@ public partial class SystemToolsSettingsViewModel : ObservableObject
                 var item = new FloatingTriggerItem
                 {
                     ButtonId = entry.ButtonId,
-                    Icon = FloatingWindowService.ConvertIcon(entry.Icon),
+                    Icon = entry.Icon,
                     ButtonName = entry.LayoutName,
                     Config = btnConfig
                 };
