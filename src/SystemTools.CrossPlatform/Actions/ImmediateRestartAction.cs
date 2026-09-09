@@ -8,17 +8,6 @@ using SystemTools.CrossPlatform.Services;
 
 namespace SystemTools.CrossPlatform.Actions;
 
-// ============================================================================
-// p2-01 B8 立即重启（源锚点 E:\My Github Projects\SystemTools\Actions\ImmediateRestartAction.cs）
-// ============================================================================
-// - ActionInfo :12；源 :16-17 ntdll RtlAdjustPrivilege + :28 ExitWindowsEx（CsWin32，不公开 API）
-//   → 按尚书省裁决 1 改为命令等价（/g /t 0），实现统一由 Actions\SystemPowerCommand.cs（运行期分派）承载
-//   （B 档「Windows 专属点」声明位，04-spec.md:61；R-2 CONDITIONAL 口径，本文件零门禁符号）。
-// - 无设置控件对（源 Plugin.cs:380 单参注册形态，p2-05 §1.2）。
-// - U4（04-spec.md:90）：预检不得实际触发重启（存在性预检）；失败经 IDesktopToastService
-//   告知“未执行”，记录错误并正常返回，不抛未处理异常（06 条目 41）。
-// - 06 条目 41 表述中的宿主 ISystemPowerService 双分支 ABSENT（p2-05 §4）→ 插件本地实现。
-// ============================================================================
 [ActionInfo("SystemTools.CrossPlatform.ImmediateRestart", "立即重启", "\uE0BD", false)]
 public class ImmediateRestartAction(ILogger<ImmediateRestartAction> logger) : ActionBase
 {
@@ -28,29 +17,34 @@ public class ImmediateRestartAction(ILogger<ImmediateRestartAction> logger) : Ac
     {
         _logger.LogDebug("ImmediateRestartAction OnInvoke 开始");
 
-        if (!OperatingSystem.IsWindows())
+        if (!SystemPowerCapability.IsActionSupported(SystemPowerCapability.ImmediateRestartId))
         {
-            _logger.LogWarning("立即重启预检未通过：当前平台非 Windows，按 U4 降级跳过执行。");
-            await NotifyDegradedAsync("立即重启", "立即重启在当前平台不可用，已跳过执行");
+            _logger.LogWarning("立即重启预检未通过：当前环境不支持（平台能力门），跳过执行。");
+            await NotifyDegradedAsync("立即重启", "立即重启在当前环境不可用，已跳过执行");
             await base.OnInvoke();
             return;
         }
 
-        if (!SystemPowerCommand.IsShutdownCommandAvailable())
+        var result = SystemPowerCommand.RunImmediateRestart();
+        switch (result.ExitCode)
         {
-            _logger.LogWarning("立即重启预检未通过：系统命令不可用，按 U4 降级跳过执行。");
-            await NotifyDegradedAsync("立即重启", "立即重启命令不可用，已跳过执行");
-            await base.OnInvoke();
-            return;
-        }
-
-        var exitCode = SystemPowerCommand.RunImmediateRestart();
-        if (exitCode != 0)
-        {
-            _logger.LogError("立即重启未执行（exit={ExitCode}）。", exitCode);
-            await NotifyDegradedAsync("立即重启", "立即重启未执行");
-            await base.OnInvoke();
-            return;
+            case PowerCommandResult.Ok:
+                break;
+            case PowerCommandResult.TimedOutInitiated:
+                // 命令已发起、系统未在限时内确认（系统可能正在处理或弹出授权提示）
+                _logger.LogInformation("立即重启已发起（系统未在限时内确认，detail={Detail}）。", result.Detail);
+                await base.OnInvoke();
+                return;
+            case PowerCommandResult.AccessDenied:
+                _logger.LogError("立即重启未执行：系统拒绝了授权（exit={ExitCode}，detail={Detail}）。", result.ExitCode, result.Detail);
+                await NotifyDegradedAsync("立即重启", "立即重启未执行：系统拒绝了请求（可能需要系统授权）");
+                await base.OnInvoke();
+                return;
+            default:
+                _logger.LogError("立即重启未执行（exit={ExitCode}，detail={Detail}）。", result.ExitCode, result.Detail);
+                await NotifyDegradedAsync("立即重启", "立即重启未执行");
+                await base.OnInvoke();
+                return;
         }
 
         _logger.LogInformation("已执行立即重启命令");

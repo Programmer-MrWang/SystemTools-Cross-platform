@@ -143,7 +143,6 @@ public class ToggleWorkflowAction(ILogger<ToggleWorkflowAction> logger) : Action
     {
         Workflow? targetWorkflow = null;
 
-        // 1. 尝试通过索引查找
         if (Settings.TargetWorkflowIndex >= 0 && Settings.TargetWorkflowIndex < automationService.Workflows.Count)
         {
             targetWorkflow = automationService.Workflows[Settings.TargetWorkflowIndex];
@@ -151,7 +150,6 @@ public class ToggleWorkflowAction(ILogger<ToggleWorkflowAction> logger) : Action
                 Settings.TargetWorkflowIndex, targetWorkflow.ActionSet.Name);
         }
 
-        // 2. 如果索引找不到，尝试通过名称查找
         if (targetWorkflow == null && !string.IsNullOrEmpty(Settings.TargetWorkflowName))
         {
             targetWorkflow = automationService.Workflows

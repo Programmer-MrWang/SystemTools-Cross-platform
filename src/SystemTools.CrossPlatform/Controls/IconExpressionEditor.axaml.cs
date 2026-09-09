@@ -16,20 +16,13 @@ namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
 /// 支持字体图标和图片的图标表达式编辑器。
-/// 与 ClassIsland 主程序内置图标选择器实现一致（来源：ClassIsland 主程序，LGPL-3.0-only，同许可）。
 /// </summary>
 public partial class IconExpressionEditor : UserControl
 {
-    /// <summary>
-    /// 要编辑的图标表达式，默认使用双向绑定。
-    /// </summary>
     public static readonly StyledProperty<string?> IconExpressionProperty =
         AvaloniaProperty.Register<IconExpressionEditor, string?>(nameof(IconExpression), "",
             defaultBindingMode: BindingMode.TwoWay);
 
-    /// <summary>
-    /// 获取或设置图标表达式。空字符串或 null 表示未设置图标。
-    /// </summary>
     public string? IconExpression
     {
         get => GetValue(IconExpressionProperty);
@@ -39,9 +32,6 @@ public partial class IconExpressionEditor : UserControl
     private readonly IconExpressionEditorViewModel _viewModel = new();
     private Flyout EditorFlyout => (Flyout)EditorButton.Flyout!;
 
-    /// <summary>
-    /// 创建图标表达式编辑器。
-    /// </summary>
     public IconExpressionEditor()
     {
         InitializeComponent();
@@ -51,7 +41,6 @@ public partial class IconExpressionEditor : UserControl
         _viewModel.ApplyExpression(IconExpression);
     }
 
-    /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -116,7 +105,6 @@ public partial class IconExpressionEditor : UserControl
     private void FocusIcon(int index)
     {
         var element = IconRepeater.GetOrCreateElement(index);
-        // Newly realized elements need a layout pass before their scroll target is known.
         IconRepeater.UpdateLayout();
         element.BringIntoView();
         element.Focus(NavigationMethod.Directional);

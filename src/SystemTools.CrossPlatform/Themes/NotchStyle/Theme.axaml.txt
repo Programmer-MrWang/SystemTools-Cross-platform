@@ -32,6 +32,11 @@
         <Setter Property="Opacity" Value="{Binding $self.(assists:MainWindowStylesAssist.BackgroundOpacity), Mode=OneWay}" />
     </Style>
 
+    <!-- The reminder mask turns the notch itself into the accent surface. -->
+    <Style Selector="theme|NotchMaterialControl.notch-mask-surface">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
     <Style Selector="ItemsControl#RootMainWindowLinesItemsControl">
         <Setter Property="ClipToBounds" Value="False" />
     </Style>
@@ -78,29 +83,55 @@
                                         VerticalContentAlignment="Center" />
                                 </Grid>
 
-                                <!-- Notification overlay keeps the host behavior intact. -->
+                                <!-- Reminder body: the notch keeps its normal surface while the
+                                     countdown progress bar drains along the bottom edge. -->
                                 <Grid x:Name="GridOverlay"
                                       ClipToBounds="False"
-                                      Opacity="0"
-                                      IsVisible="{Binding OverlayContent,
-                                                          Converter={x:Static ObjectConverters.IsNotNull},
-                                                          RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}">
+                                      Opacity="0">
+                                    <Grid.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="OverlayContent"
+                                                     Converter="{x:Static ObjectConverters.IsNotNull}"
+                                                     RelativeSource="{RelativeSource AncestorType=controls:MainWindowLine}" />
+                                            <Binding Path="!$self.(assists:MainWindowStylesAssist.MainWindowInEditMode)" />
+                                        </MultiBinding>
+                                    </Grid.IsVisible>
                                     <theme:NotchMaterialControl
                                         Classes="notch-background"
                                         IsHitTestVisible="False" />
                                     <theme:NotchFrameControl Classes="notch-frame" IsHitTestVisible="False" />
                                     <theme:NotchClipControl IsHitTestVisible="False">
                                         <Grid>
-                                            <ProgressBar Height="3"
-                                                         VerticalAlignment="Bottom"
-                                                         Maximum="1"
-                                                         MinWidth="0"
-                                                         Foreground="{DynamicResource AccentFillColorDefaultBrush}"
-                                                         Background="Transparent"
-                                                         BorderBrush="Transparent"
-                                                         Value="{Binding CountdownProgressValue,
-                                                                        RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}" />
+                                            <!-- HACK: a stretched progress bar refuses to shrink back
+                                                 without an explicit width source. -->
+                                            <Canvas x:Name="ProgressContainer"
+                                                    VerticalAlignment="Bottom"
+                                                    HorizontalAlignment="Stretch"
+                                                    Height="{Binding #OverlayTimeProgressBar.Bounds.Height}">
+                                                <ProgressBar x:Name="OverlayTimeProgressBar"
+                                                             Height="3"
+                                                             VerticalAlignment="Bottom"
+                                                             Maximum="1"
+                                                             MinWidth="0"
+                                                             Width="{Binding #ProgressContainer.Bounds.Width, Mode=OneWay}"
+                                                             Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                                             Background="Transparent"
+                                                             BorderBrush="Transparent"
+                                                             Value="{Binding CountdownProgressValue,
+                                                                            RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}">
+                                                    <ProgressBar.Transitions>
+                                                        <Transitions>
+                                                            <DoubleTransition Property="Value" Duration="0:0:0.05">
+                                                                <DoubleTransition.Easing>
+                                                                    <LinearEasing />
+                                                                </DoubleTransition.Easing>
+                                                            </DoubleTransition>
+                                                        </Transitions>
+                                                    </ProgressBar.Transitions>
+                                                </ProgressBar>
+                                            </Canvas>
                                             <ContentPresenter
+                                                MaxHeight="{DynamicResource Notch.IslandHeight}"
                                                 Content="{Binding OverlayContent.Content,
                                                                  RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}"
                                                 ContentTemplate="{Binding OverlayContent.ContentTemplate,
@@ -109,24 +140,93 @@
                                     </theme:NotchClipControl>
                                 </Grid>
 
+                                <!-- Reminder mask: the notch itself turns into the accent surface,
+                                     expands from the centre, holds the headline, then contracts. -->
                                 <theme:NotchClipControl x:Name="OverlayMaskRoot"
                                         IsHitTestVisible="False"
                                         ClipToBounds="True"
-                                        IsVisible="{Binding MaskContent,
-                                                            Converter={x:Static ObjectConverters.IsNotNull},
-                                                            RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}">
-                                    <theme:NotchClipControl x:Name="OverlayMask"
-                                            Classes="primaryColorZone"
-                                            Height="{DynamicResource Notch.IslandHeight}"
-                                            ClipToBounds="True">
+                                        Height="{DynamicResource Notch.IslandHeight}">
+                                    <theme:NotchClipControl.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="MaskContent"
+                                                     Converter="{x:Static ObjectConverters.IsNotNull}"
+                                                     RelativeSource="{RelativeSource AncestorType=controls:MainWindowLine}" />
+                                            <Binding Path="!$self.(assists:MainWindowStylesAssist.MainWindowInEditMode)" />
+                                        </MultiBinding>
+                                    </theme:NotchClipControl.IsVisible>
+                                    <Grid>
+                                        <theme:NotchMaterialControl x:Name="OverlayMaskSurface"
+                                                Classes="notch-mask-surface"
+                                                IsHitTestVisible="False"
+                                                RenderTransformOrigin="0.5,0.5">
+                                            <theme:NotchMaterialControl.RenderTransform>
+                                                <ScaleTransform />
+                                            </theme:NotchMaterialControl.RenderTransform>
+                                        </theme:NotchMaterialControl>
                                         <ContentPresenter x:Name="OverlayMaskContent"
+                                                          Margin="24 0"
+                                                          MaxHeight="{DynamicResource Notch.IslandHeight}"
+                                                          HorizontalContentAlignment="Center"
+                                                          VerticalContentAlignment="Center"
                                                           Opacity="0"
+                                                          TextElement.Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"
                                                           Content="{Binding MaskContent.Content,
                                                                            RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}"
                                                           ContentTemplate="{Binding MaskContent.ContentTemplate,
-                                                                                   RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}" />
-                                    </theme:NotchClipControl>
+                                                                                   RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}">
+                                            <ContentPresenter.RenderTransform>
+                                                <ScaleTransform />
+                                            </ContentPresenter.RenderTransform>
+                                        </ContentPresenter>
+                                    </Grid>
                                 </theme:NotchClipControl>
+                            </Grid>
+                        </Panel>
+                    </Grid>
+                </Grid>
+            </ControlTemplate>
+
+            <!-- A line that is not allowed to show reminders keeps the same notch surface, just
+                 without the reminder layers. PART_GridWrapper stays so the host can still measure
+                 the line and drive BackgroundWidth. -->
+            <ControlTemplate x:Key="Notch.MainWindowLineMinTemplate" TargetType="controls:MainWindowLine">
+                <Grid x:Name="NotchLineRoot"
+                      ClipToBounds="False"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Top">
+                    <Border x:Name="NotchMergedSurface"
+                            Classes="docking"
+                            Height="{DynamicResource Notch.IslandHeight}"
+                            Width="{Binding BackgroundWidth, Mode=OneWay,
+                                            RelativeSource={RelativeSource FindAncestor,
+                                            AncestorType=controls:MainWindowLine}}"
+                            IsVisible="{Binding !$self.(assists:MainWindowStylesAssist.IsIslandSeperated)}"
+                            ClipToBounds="True">
+                        <Grid>
+                            <theme:NotchMaterialControl
+                                Classes="notch-background"
+                                IsHitTestVisible="False" />
+                            <theme:NotchFrameControl Classes="notch-frame" IsHitTestVisible="False" />
+                        </Grid>
+                    </Border>
+
+                    <Grid x:Name="ContentClipBorder" ClipToBounds="False">
+                        <Panel Classes="animated-resize" ClipToBounds="False">
+                            <Grid x:Name="PART_GridWrapper"
+                                  Classes="docking"
+                                  Height="{DynamicResource Notch.IslandHeight}"
+                                  ClipToBounds="False">
+                                <Grid x:Name="GridContentRoot"
+                                      Height="{DynamicResource Notch.IslandHeight}"
+                                      MinWidth="20"
+                                      Margin="28 0"
+                                      ClipToBounds="False">
+                                    <ContentPresenter
+                                        Content="{Binding Content,
+                                                         RelativeSource={RelativeSource AncestorType=controls:MainWindowLine}}"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center" />
+                                </Grid>
                             </Grid>
                         </Panel>
                     </Grid>
@@ -150,6 +250,179 @@
                                        Easing="0.65, 0, 0.35, 1.0" />
                 </Transitions>
             </Setter>
+        </Style>
+
+        <!-- A line that may not show reminders gets the reminder-free template. -->
+        <Style Selector="^[IsNotificationEnabled=False]">
+            <Setter Property="Template" Value="{StaticResource Notch.MainWindowLineMinTemplate}" />
+        </Style>
+
+        <!-- Editing the main interface must never be hidden behind a reminder. -->
+        <Style Selector="^[IsNotificationEnabled=True][(assists|MainWindowStylesAssist.MainWindowInEditMode)=True]">
+            <Style Selector="^ /template/ Grid#GridOverlay">
+                <Setter Property="Opacity" Value="0" />
+            </Style>
+            <Style Selector="^ /template/ Grid#GridContentRoot">
+                <Setter Property="Opacity" Value="1" />
+            </Style>
+        </Style>
+
+        <!-- Reminder presentation. The host drives these pseudo classes:
+             :mask-in / :mask-out   - the accent notch mask holding the headline
+             :overlay-in / :overlay-out - the reminder body with the countdown bar -->
+        <Style Selector="^[IsNotificationEnabled=True][(assists|MainWindowStylesAssist.MainWindowInEditMode)=False]">
+            <Style Selector="^ /template/ Grid#GridContentRoot">
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.18">
+                            <DoubleTransition.Easing>
+                                <SineEaseIn />
+                            </DoubleTransition.Easing>
+                        </DoubleTransition>
+                    </Transitions>
+                </Setter>
+                <Setter Property="Opacity" Value="1" />
+            </Style>
+
+            <Style Selector="^:mask-anim">
+                <Style Selector="^:mask-in">
+                    <Style Selector="^ /template/ theme|NotchMaterialControl#OverlayMaskSurface">
+                        <Style.Animations>
+                            <Animation Duration="0:0:0.14" IterationCount="1" FillMode="Both">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="Opacity" Value="0" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="Opacity" Value="1" />
+                                </KeyFrame>
+                            </Animation>
+                            <Animation Duration="0:0:0.36" IterationCount="1" FillMode="Both"
+                                       Easing="0.16, 1, 0.3, 1">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="0.4" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="1.0" />
+                                </KeyFrame>
+                            </Animation>
+                        </Style.Animations>
+                    </Style>
+                    <Style Selector="^ /template/ ContentPresenter#OverlayMaskContent">
+                        <Style.Animations>
+                            <Animation Delay="0:0:0.16" Duration="0:0:0.22" IterationCount="1"
+                                       FillMode="Both" Easing="0.25, 1, 0.5, 1">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="Opacity" Value="0" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="Opacity" Value="1" />
+                                </KeyFrame>
+                            </Animation>
+                            <Animation Delay="0:0:0.16" Duration="0:0:0.5" IterationCount="1"
+                                       FillMode="Both" Easing="0.25, 1, 0.5, 1">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="1.12" />
+                                    <Setter Property="ScaleTransform.ScaleY" Value="1.12" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="1.0" />
+                                    <Setter Property="ScaleTransform.ScaleY" Value="1.0" />
+                                </KeyFrame>
+                            </Animation>
+                        </Style.Animations>
+                    </Style>
+                    <Style Selector="^ /template/ Grid#GridContentRoot">
+                        <Setter Property="Opacity" Value="0" />
+                    </Style>
+                </Style>
+
+                <Style Selector="^:mask-out">
+                    <Style Selector="^ /template/ theme|NotchMaterialControl#OverlayMaskSurface">
+                        <Style.Animations>
+                            <Animation Delay="0:0:0.06" Duration="0:0:0.18" IterationCount="1"
+                                       FillMode="Forward">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="Opacity" Value="1" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="Opacity" Value="0" />
+                                </KeyFrame>
+                            </Animation>
+                            <Animation Delay="0:0:0.06" Duration="0:0:0.26" IterationCount="1"
+                                       FillMode="Forward" Easing="0.5, 0, 0.75, 0">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="1.0" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="0.4" />
+                                </KeyFrame>
+                            </Animation>
+                        </Style.Animations>
+                    </Style>
+                    <Style Selector="^ /template/ ContentPresenter#OverlayMaskContent">
+                        <Style.Animations>
+                            <Animation Duration="0:0:0.14" IterationCount="1" FillMode="Forward">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="Opacity" Value="1" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="Opacity" Value="0" />
+                                </KeyFrame>
+                            </Animation>
+                            <Animation Duration="0:0:0.18" IterationCount="1" FillMode="Both"
+                                       Easing="0.5, 0, 0.75, 0">
+                                <KeyFrame Cue="0%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="1.0" />
+                                    <Setter Property="ScaleTransform.ScaleY" Value="1.0" />
+                                </KeyFrame>
+                                <KeyFrame Cue="100%">
+                                    <Setter Property="ScaleTransform.ScaleX" Value="1.06" />
+                                    <Setter Property="ScaleTransform.ScaleY" Value="1.06" />
+                                </KeyFrame>
+                            </Animation>
+                        </Style.Animations>
+                    </Style>
+                    <Style Selector="^ /template/ Grid#GridContentRoot">
+                        <Setter Property="Opacity" Value="0" />
+                    </Style>
+                </Style>
+            </Style>
+
+            <Style Selector="^:overlay-anim">
+                <Style Selector="^ /template/ Grid#GridOverlay">
+                    <Setter Property="Transitions">
+                        <Transitions>
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.2">
+                                <DoubleTransition.Easing>
+                                    <SineEaseIn />
+                                </DoubleTransition.Easing>
+                            </DoubleTransition>
+                        </Transitions>
+                    </Setter>
+                    <Setter Property="Opacity" Value="0" />
+                </Style>
+                <Style Selector="^:overlay-out">
+                    <Style Selector="^ /template/ Grid#GridOverlay">
+                        <Setter Property="Opacity" Value="0" />
+                    </Style>
+                    <Style Selector="^ /template/ Grid#GridContentRoot">
+                        <Setter Property="Opacity" Value="1" />
+                    </Style>
+                </Style>
+            </Style>
+
+            <Style Selector="^:overlay-in">
+                <Style Selector="^ /template/ Grid#GridOverlay">
+                    <Setter Property="Opacity" Value="1" />
+                </Style>
+                <Style Selector="^ /template/ Grid#GridContentRoot">
+                    <Setter Property="Opacity" Value="0" />
+                </Style>
+            </Style>
+
+            <Style Selector="^ /template/ ProgressBar#OverlayTimeProgressBar">
+                <Setter Property="MinWidth" Value="0" />
+            </Style>
         </Style>
     </Style>
 

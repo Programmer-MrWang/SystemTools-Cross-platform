@@ -266,18 +266,21 @@ public class Plugin : PluginBase
     {
         var config = GlobalConstants.MainConfig!.Data;
 
-        // 电源选项（p2-01 §8；源 Plugin.cs:375-382 先例，B4–B10；B8–B10 无设置对，单参形态随源）
-        RegisterActionIfEnabled<ShutdownAction, ShutdownSettingsControl>(services, config,
-            "SystemTools.CrossPlatform.Shutdown");
-        RegisterActionIfEnabled<AdvancedShutdownAction, AdvancedShutdownSettingsControl>(services, config,
-            "SystemTools.CrossPlatform.AdvancedShutdown");
-        RegisterActionIfEnabled<LockScreenAction, ShortcutKeyNotificationSettingsControl>(services, config,
-            "SystemTools.CrossPlatform.LockScreen");
-        RegisterActionIfEnabled<CancelShutdownAction, ShortcutKeyNotificationSettingsControl>(services, config,
-            "SystemTools.CrossPlatform.CancelShutdown");
-        RegisterActionIfEnabled<ImmediateRestartAction>(services, config, "SystemTools.CrossPlatform.ImmediateRestart");
-        RegisterActionIfEnabled<ImmediateShutdownAction>(services, config, "SystemTools.CrossPlatform.ImmediateShutdown");
-        RegisterActionIfEnabled<SleepAction>(services, config, "SystemTools.CrossPlatform.Sleep");
+        // 电源选项（p2-01 §8；源 Plugin.cs:375-382 先例，B4–B10；B8–B10 无设置对，单参形态随源）。
+        // 三平台能力门（SystemPowerCapability）：本机当前环境不支持的电源行动不注册也不显示；
+        // Windows 全 7 项、Linux(X11/Wayland, systemctl/loginctl) 全 7 项、macOS 6 项（锁定屏幕无 root
+        // 途径除外）。定时关机族在 Linux/macOS 为应用内计划（ShutdownPlanCenter）。
+        RegisterPowerActionIfEnabled<ShutdownAction, ShutdownSettingsControl>(services, config,
+            SystemPowerCapability.TimedShutdownId);
+        RegisterPowerActionIfEnabled<AdvancedShutdownAction, AdvancedShutdownSettingsControl>(services, config,
+            SystemPowerCapability.AdvancedShutdownId);
+        RegisterPowerActionIfEnabled<LockScreenAction, ShortcutKeyNotificationSettingsControl>(services, config,
+            SystemPowerCapability.LockScreenId);
+        RegisterPowerActionIfEnabled<CancelShutdownAction, ShortcutKeyNotificationSettingsControl>(services, config,
+            SystemPowerCapability.CancelShutdownId);
+        RegisterPowerActionIfEnabled<ImmediateRestartAction>(services, config, SystemPowerCapability.ImmediateRestartId);
+        RegisterPowerActionIfEnabled<ImmediateShutdownAction>(services, config, SystemPowerCapability.ImmediateShutdownId);
+        RegisterPowerActionIfEnabled<SleepAction>(services, config, SystemPowerCapability.SleepId);
 
         // 文件操作（p2-02 §6；源 Plugin.cs:385-387 先例，B1–B3）
         RegisterActionIfEnabled<CopyAction, CopySettingsControl>(services, config, "SystemTools.CrossPlatform.Copy");
@@ -426,6 +429,31 @@ public class Plugin : PluginBase
         }
     }
 
+    /// <summary>电源族注册：能力门（本机环境不支持则整体跳过）+ 启用开关（与 RegisterActionIfEnabled 同级）。</summary>
+    private void RegisterPowerActionIfEnabled<TAction>(IServiceCollection services, MainConfigData config, string actionId)
+        where TAction : ActionBase
+    {
+        if (!SystemPowerCapability.IsActionSupported(actionId) || !config.IsActionEnabled(actionId))
+        {
+            return;
+        }
+
+        services.AddAction<TAction>();
+    }
+
+    private void RegisterPowerActionIfEnabled<TAction, TSettingsControl>(IServiceCollection services,
+        MainConfigData config, string actionId)
+        where TAction : ActionBase
+        where TSettingsControl : ActionSettingsControlBase
+    {
+        if (!SystemPowerCapability.IsActionSupported(actionId) || !config.IsActionEnabled(actionId))
+        {
+            return;
+        }
+
+        services.AddAction<TAction, TSettingsControl>();
+    }
+
     private void RegisterTriggerIfEnabled<TTrigger, TSettings>(IServiceCollection services, MainConfigData config,
         string triggerId)
         where TTrigger : TriggerBase
@@ -459,10 +487,9 @@ public class Plugin : PluginBase
         IActionService.ActionMenuTree.Add(new ActionMenuTreeGroup("SystemTools 行动", "\uE079"));
 
         // 电源选项（p2-01 §8 行动菜单树交接行；源 :641-646 组门 + :805-821 逐项；ID 前缀改写，文案随源）
-        if (HasAnyActionEnabled(config, "SystemTools.CrossPlatform.Shutdown", "SystemTools.CrossPlatform.AdvancedShutdown",
-                "SystemTools.CrossPlatform.LockScreen", "SystemTools.CrossPlatform.CancelShutdown",
-                "SystemTools.CrossPlatform.ImmediateRestart", "SystemTools.CrossPlatform.ImmediateShutdown",
-                "SystemTools.CrossPlatform.Sleep"))
+        // 组门叠加平台能力门（SystemPowerCapability）：本机环境不支持的电源行动不注册也不入组显示
+        //（macOS 无“锁定屏幕”；Linux/macOS 定时关机族为应用内计划，见 ShutdownPlanCenter）。
+        if (HasAnyPowerActionEnabled(config))
         {
             IActionService.ActionMenuTree["SystemTools 行动"].Add(new ActionMenuTreeGroup("电源选项…", "\uEDE8"));
             BuildPowerMenu(config);
@@ -542,20 +569,27 @@ public class Plugin : PluginBase
     {
         var items = new List<ActionMenuTreeItem>();
 
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.Shutdown"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.Shutdown", "计时关机", "\uE4C4"));
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.AdvancedShutdown"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.AdvancedShutdown", "高级计时关机", "\uE4D2"));
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.CancelShutdown"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.CancelShutdown", "取消关机计划", "\uE4CC"));
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.LockScreen"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.LockScreen", "锁定屏幕", "\uEAF0"));
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.ImmediateRestart"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.ImmediateRestart", "立即重启", "\uE0BD"));
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.ImmediateShutdown"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.ImmediateShutdown", "立即关机", "\uEDE9"));
-        if (config.IsActionEnabled("SystemTools.CrossPlatform.Sleep"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.Sleep", "睡眠", "\uF44B"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.TimedShutdownId)
+            && config.IsActionEnabled(SystemPowerCapability.TimedShutdownId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.TimedShutdownId, "计时关机", "\uE4C4"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.AdvancedShutdownId)
+            && config.IsActionEnabled(SystemPowerCapability.AdvancedShutdownId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.AdvancedShutdownId, "高级计时关机", "\uE4D2"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.CancelShutdownId)
+            && config.IsActionEnabled(SystemPowerCapability.CancelShutdownId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.CancelShutdownId, "取消关机计划", "\uE4CC"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.LockScreenId)
+            && config.IsActionEnabled(SystemPowerCapability.LockScreenId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.LockScreenId, "锁定屏幕", "\uEAF0"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.ImmediateRestartId)
+            && config.IsActionEnabled(SystemPowerCapability.ImmediateRestartId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.ImmediateRestartId, "立即重启", "\uE0BD"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.ImmediateShutdownId)
+            && config.IsActionEnabled(SystemPowerCapability.ImmediateShutdownId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.ImmediateShutdownId, "立即关机", "\uEDE9"));
+        if (SystemPowerCapability.IsActionSupported(SystemPowerCapability.SleepId)
+            && config.IsActionEnabled(SystemPowerCapability.SleepId))
+            items.Add(new ActionMenuTreeItem(SystemPowerCapability.SleepId, "睡眠", "\uF44B"));
 
         if (items.Count > 0)
         {
@@ -564,6 +598,13 @@ public class Plugin : PluginBase
                 IActionService.ActionMenuTree["SystemTools 行动"]["电源选项…"].Add(item);
             }
         }
+    }
+
+    /// <summary>电源族组门：任一行动“本机支持且配置启用”即入树。</summary>
+    private static bool HasAnyPowerActionEnabled(MainConfigData config)
+    {
+        return SystemPowerCapability.PowerActionIds.Any(id =>
+            SystemPowerCapability.IsActionSupported(id) && config.IsActionEnabled(id));
     }
 
     private void BuildFileMenu(MainConfigData config)
@@ -615,7 +656,7 @@ public class Plugin : PluginBase
         if (config.IsActionEnabled("SystemTools.CrossPlatform.KillProcess"))
             items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.KillProcess", "退出进程", "\uE0DE"));
         if (config.IsActionEnabled("SystemTools.CrossPlatform.ShowToast"))
-            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.ShowToast", "拉起自定义Windows通知", "\uE3E4"));
+            items.Add(new ActionMenuTreeItem("SystemTools.CrossPlatform.ShowToast", "拉起自定义系统通知", "\uE3E4"));
 
         if (items.Count > 0)
         {

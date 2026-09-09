@@ -5,8 +5,7 @@ using SystemTools.CrossPlatform.Settings;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 切换悬浮窗层级行动的设置控件。抽取自源插件 Controls\ToggleFloatingWindowLayerSettingsControl.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整，其余逐行保留源实现）。
+/// 切换悬浮窗层级行动的设置控件
 /// </summary>
 public class ToggleFloatingWindowLayerSettingsControl : ActionSettingsControlBase<ToggleFloatingWindowLayerSettings>
 {

@@ -23,19 +23,8 @@ using SystemTools.CrossPlatform.Shared;
 namespace SystemTools.CrossPlatform.SettingsPage;
 
 /// <summary>
-/// 悬浮窗编辑页（阶段 3 整合，兵部 p3-02；源 SettingsPage\FloatingWindowEditorSettingsPage.axaml.cs
-/// 非拖拽子集；落点权威 p3-05 §2.2/§3.2）。
-/// 阶段 1 骨架面（礼部 p1-06）：悬浮窗配置方案选择（FloatingWindowProfileManager，A3/A4 共享类型；
+/// 悬浮窗编辑页
 /// 选择语义经 <see cref="SystemToolsSettingsViewModel.SelectFloatingWindowProfile"/> 与 A3 行动一致）。
-/// 阶段 3 接线（W6-W18）：显示悬浮窗开关（W6）、按钮布局编辑器（W7，D6 口径非拖拽实现——
-/// 行内拖拽排序/跨行拖动处理器组不接线，保留添加行/插入行/移除行与行/按钮规则集编辑）、
-/// 外观 4 Slider + 主题/阴影/拖动把手（W8-W14，主题第 4 项按 D5 口径映射宿主明暗）、
-/// 层级/层级频率（W15/W16，R-3 降级注记随源语义）、按规则隐藏 + 整窗规则集编辑（W17）、
-/// 方案选择面显示细节（W18）。配置写入经 MainConfigData PropertyChanged 统一 Save +
-/// FloatingWindowService.UpdateWindowState（源 OnSettingsPropertyChanged 同款管线，无源
-/// 液态玻璃分支；服务侧亦自订阅配置变更应用经典外观，p2-03 交付面）。
-/// 源页注册以 EnableFloatingWindowFeature 为条件（源 Plugin.cs:182-185）；本插件注册门由
-/// p2-06 §4-3 恢复（Plugin.cs :169/:171），页面代码零注册面改动。
 /// </summary>
 [HidePageTitle]
 [SettingsPageInfo("SystemTools.CrossPlatform.settings.floating", "悬浮窗编辑", "\uEA37", "\uEA37")]
@@ -61,7 +50,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
 
     private bool _isDisposed;
 
-    // ===== 规则集 Drawer 状态（源 :69-80 非拖拽子集） =====
     private enum RulesetTargetType { Button, Row, Window }
     private RulesetTargetType _currentRulesetTarget;
     private FloatingTriggerItem? _currentButtonTarget;
@@ -106,11 +94,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         }
     }
 
-    /// <summary>
-    /// 配置成员变更统一处理（源 OnSettingsPropertyChanged :136-174 经典外观子集：
-    /// 外观/层级成员 → 落盘 + 窗口刷新；显示/规则开关 → 落盘 + 窗口刷新 + 规则状态广播；
-    /// 整窗规则集对象 → 重注册监听 + 落盘 + 规则状态广播。源液态玻璃分支不迁。）
-    /// </summary>
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(MainConfigData.FloatingWindowTheme)
@@ -153,7 +136,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         IAppHost.TryGetService<IRulesetService>()?.NotifyStatusChanged();
     }
 
-    // ===== W6 显示悬浮窗（源 OnFloatingWindowVisibleToggleChanged :202-222 随源） =====
 
     private void OnFloatingWindowVisibleToggleChanged(object? sender, RoutedEventArgs e)
     {
@@ -176,8 +158,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         GlobalConstants.MainConfig?.Save();
         service.UpdateWindowState();
     }
-
-    // ===== W18 方案选择与管理（源 :224-290 随源；选择语义经 VM 与 A3 行动一致） =====
 
     private void ProfileSelector_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -254,8 +234,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         ViewModel.RemoveFloatingWindowProfile(currentName);
     }
 
-    // ===== W7 按钮布局编辑器（源 :292-310/:550-592/:60-80 非拖拽子集） =====
-
     private void OnAddFloatingTriggerRowClick(object? sender, RoutedEventArgs e)
     {
         ViewModel.AddFloatingTriggerRow();
@@ -320,8 +298,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         OpenRulesetDrawer(row.RowRuleset.HidingRules, row.RowRuleset.IsVisible, row.RowRuleset.HideOnRule);
     }
 
-    // ===== W17 整窗规则集编辑（源 ButtonOpenFloatingWindowRuleset_OnClick :312-320 随源） =====
-
     private void ButtonOpenFloatingWindowRuleset_OnClick(object? sender, RoutedEventArgs e)
     {
         _currentRulesetTarget = RulesetTargetType.Window;
@@ -332,10 +308,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         OpenRulesetDrawer(config.FloatingWindowRuleset, true, config.FloatingWindowRulesetEnabled);
     }
 
-    /// <summary>
-    /// 打开规则集 Drawer（源 OpenRulesetDrawer :322-383 非拖拽子集；经宿主
-    /// SettingsPageBase.OpenDrawer 在设置窗口抽屉显示）。
-    /// </summary>
     private void OpenRulesetDrawer(Ruleset ruleset, bool isVisible, bool hideOnRule)
     {
         DetachRulesetListeners();
@@ -355,7 +327,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
             panel.Children.Add(hint);
         }
 
-        // 开关面板
         var togglesPanel = new StackPanel
         {
             Orientation = Avalonia.Layout.Orientation.Horizontal,
@@ -386,7 +357,6 @@ public partial class FloatingWindowEditorSettingsPage : SettingsPageBase
         togglesPanel.Children.Add(_drawerHideOnRuleToggle);
         panel.Children.Add(togglesPanel);
 
-        // 规则集编辑器
         _drawerRulesetControl = new RulesetControl { Classes = { "in-drawer" }, Ruleset = ruleset };
         panel.Children.Add(_drawerRulesetControl);
 

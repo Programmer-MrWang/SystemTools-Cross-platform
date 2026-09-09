@@ -26,8 +26,6 @@ public class CopyAction(ILogger<CopyAction> logger) : ActionBase<CopySettings>
 
         try
         {
-            // 跨平台路径适配：源 :40-41 为 TrimEnd('\\')（仅剥离反斜杠）；
-            // 改用 BCL TrimEndingDirectorySeparator，同时正确处理 Windows 反斜杠与 Unix 斜杠。
             var sourcePath = Path.TrimEndingDirectorySeparator(Settings.SourcePath);
             var destPath = Path.TrimEndingDirectorySeparator(Settings.DestinationPath);
 
@@ -84,9 +82,6 @@ public class CopyAction(ILogger<CopyAction> logger) : ActionBase<CopySettings>
                     Directory.Delete(finalDestPath, true);
                 }
 
-                // 文件夹分支跨平台适配（06 条目 34）：源 :96-110 经 shell 子进程调用外部命令行工具完成
-                // 递归复制并按退出码判定失败；改为 BCL 递归复制（建目录 + 文件逐个复制 + 子目录递归），
-                // 路径参数直接传入 BCL API、不经过 shell 拼接；失败经外层统一记录并抛出（行动失败语义与源一致）。
                 await Task.Run(() => CopyDirectoryRecursive(sourcePath, finalDestPath));
 
                 _logger.LogInformation("文件夹复制成功: {Source} -> {Destination}", sourcePath, finalDestPath);
@@ -114,7 +109,6 @@ public class CopyAction(ILogger<CopyAction> logger) : ActionBase<CopySettings>
         foreach (var dir in Directory.EnumerateDirectories(sourceDir))
         {
             var target = Path.Combine(destDir, Path.GetFileName(dir));
-            // 目标目录位于源目录内部时跳过该子树（与源外部工具的排除语义等价，避免把目标再复制进自身）。
             if (IsSamePath(dir, target))
             {
                 continue;

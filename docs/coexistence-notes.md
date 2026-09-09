@@ -1,5 +1,15 @@
 # SystemTools 跨平台版 与原版 SystemTools 同装差异说明
 
+> **修订注记（ShowToast 行动改名与失败提示）**：按用户裁决，「拉起自定义Windows通知」行动显示名/菜单/功能抽屉统一改写为**「拉起自定义系统通知」**（行动 ID SystemTools.CrossPlatform.ShowToast 与图标 E3E4 不变；.tang 案卷中的历史验收记录为该轮时点存档，不作回改）。该行动本就经宿主 PlatformServices.DesktopToastService 跨平台抽象实现（Windows WinRT / Linux org.freedesktop.Notifications / macOS NSUserNotification），三平台通用；新增失败可见化：桌面通知通道异常时，经插件应用内通知渠道提示「自定义通知显示失败」（不递归调用已失败的桌面 Toast 通道）。
+
+> **修订注记（电源族三平台改造）**：按用户裁决，电源选项组 7 项由“Windows 专属 + 非 Windows 一律降级跳过”重做为**“可实现即实现”**口径（§2.1 随之整体改写，本会话前关于电源族“非 Windows 一律提示不可用”的描述作废）：
+> - 仍为单一 `net10.0` cipx 三平台通用；平台差异全部运行期分派，无新增条件编译文件。
+> - **三平台均实现**：计时关机、高级计时关机、取消关机计划、立即重启、立即关机、睡眠。Windows 保持 OS 级 shutdown.exe/rundll32.exe 原语义；Linux（X11 与 Wayland 均注册；电源动词走 systemd `systemctl`——loginctl 自始不提供电源动词，曾误用报 `Unknown command verb`；elogind 系无 systemctl 时回退其 loginctl；非 root 经 polkit，拒绝如实提示）；macOS 关机/重启经 osascript → System Events（首次弹系统“自动化”授权询问，拒绝如实失败并引导授权），睡眠经 `pmset sleepnow`。
+> - **定时关机族在 Linux/macOS 为“应用内计划”**（`ShutdownPlanCenter`，到点调用立即关机原语；宿主退出即取消——与 Windows“宿主退出即取消 OS 计划”的用户可见语义一致）：非 root 无系统级定时关机原语。
+> - **仅部分平台可实现**：锁定屏幕 —— Windows（rundll32）、Linux（`loginctl lock-session`）注册；macOS 无非 root 公共途径，**不注册不显示**。
+> - 注册/行动菜单/功能抽屉统一经 `SystemPowerCapability` 能力门过滤：本机不支持的电源行动不注册、不显示（如 Linux 无 systemctl/loginctl 或非图形会话、macOS 锁定屏幕）。
+> - 代码面：`Actions\SystemPowerCapability.cs`（能力探测）、`Actions\ShutdownPlanCenter.cs`（应用内计划）、`Actions\SystemPowerCommand.cs`（平台分派重写，`PowerCommandResult` 带失败详情）。
+
 > **修订注记（本会话）**：按用户裁决完成一轮“跨平台清理 + 对齐原版”改造，以下条目已过时并作废：
 > - 「自动切换 ClassIsland 主题」与「遮挡文字时隐藏主界面」两功能已**整体删除**（行动/菜单项/设置页开关/功能抽屉条目/空壳服务/配置成员全部移除），不再有“不可用 Toast”降级行为（原 §2.4 及 §5.3 中相关描述作废）。
 > - 空壳「插件调试」页已删除（含 Plugin.cs 注册与关于页信息卡 5 连击导航入口）。
@@ -11,7 +21,7 @@
 
 本文面向**同时安装（同装）**「SystemTools 跨平台版」（新插件）与原「SystemTools」插件的 ClassIsland 用户，说明两插件并存时的行为差异。新插件支持 Windows、Linux（X11）与 macOS；原插件仅限 Windows。本文描述以当前交付版本源码为准，逐条附可复核的文件行号或登记条目号。
 
-> 口径约定（自“单一 cipx 全平台”改造起）：插件只发布 `net10.0` 单一目标框架产物（同一份 cipx 安装到 Windows/Linux/macOS 均可运行）。平台差异全部在运行期用 `OperatingSystem.IsWindows()` 判断承载（SystemShutdownMonitor / SystemPowerCommand / ProcessMemoryMaintenanceNative / SystemMotionPreferences），已不再有 `#if Platforms_*` 条件编译或 `*Windows.cs` 条件文件；Windows 专属行为（电源族、工作集修剪、会话结束监视等）在非 Windows 上按 no-op/跳过分支运行。
+> 口径约定（自“单一 cipx 全平台”改造起）：插件只发布 `net10.0` 单一目标框架产物（同一份 cipx 安装到 Windows/Linux/macOS 均可运行）。平台差异全部在运行期用 `OperatingSystem.IsWindows()` 判断承载（SystemShutdownMonitor / SystemPowerCommand / ProcessMemoryMaintenanceNative / SystemMotionPreferences），已不再有 `#if Platforms_*` 条件编译或 `*Windows.cs` 条件文件；Windows 专属行为（工作集修剪、会话结束监视等）在非 Windows 上按 no-op/跳过分支运行；电源族自“电源族三平台改造”轮起按 §2.1 三平台矩阵交付（见顶部修订注记），不再一律 no-op。
 
 ---
 
@@ -46,29 +56,39 @@
 
 ## 二、Windows 专属能力与各平台降级行为
 
-新插件对原插件中依赖 Windows 原生能力的功能做了**保留 + 降级**处理：Windows 上行为与原版一致（或按登记口径等效），非 Windows 上给出明确提示并正常结束，不抛未处理异常、不伪造成功。逐项如下（登记条目号可在案卷证据中复核）。
+新插件对原插件中依赖 Windows 原生能力的功能按“**可实现即实现、仅部分平台可实现则平台适配、否则不注册不显示**”交付：Windows 上行为与原版一致（或按登记口径等效）；非 Windows 上凡可实现者提供平台实现，凡不可实现者不注册不显示，均不抛未处理异常、不伪造成功。逐项如下（登记条目号可在案卷证据中复核；电源族详见 §2.1 三平台矩阵）。
 
-### 2.1 电源族 7 项（计时/高级关机、取消关机、锁屏、重启、关机、睡眠）
+### 2.1 电源族 7 项（计时/高级关机、取消关机、锁屏、重启、关机、睡眠）——三平台矩阵
 
-全族统一三级预检链路（登记 p2-01 §3；U4 口径）：
+电源族按“**能实现则实现；仅部分平台可实现则平台适配并在该平台注册；否则不注册、不显示**”交付。
+注册/行动菜单/功能抽屉统一经 `Actions\SystemPowerCapability.cs` 能力门过滤（启动期惰性探测：环境变量与
+文件检查，不派生进程、不触发授权询问）；执行期结果判定分四类并如实记录/提示，不伪造成功：
 
-1. **系统预检**：非 Windows → 通知「\<功能名\>在当前平台不可用，已跳过执行」；
-2. **命令可用性预检**：关机/重启等命令文件不存在 → 通知「…命令不可用，已跳过执行」；
-3. **执行结果判定**：命令执行失败或退出码异常 → 通知「…未执行/未生效」并记日志。
+- 成功（exit 0）；
+- 有界等待超时 → “已发起、未确认”（睡眠/系统即将断电等场景）；
+- 系统拒绝授权（polkit、macOS 自动化 TCC）→ 提示「未执行：系统拒绝了请求（可能需要系统授权）」并附详情；
+- 命令失败 → 提示「未执行/未生效」并记日志。
 
-Windows 命令承载于条件编译文件 `Actions\SystemPowerCommandWindows.cs`（全文件 `#if Platforms_Windows`，p2-01 §1.3），非 Windows 平台不编译、不执行。逐项差异：
-
-| 功能 | Windows 行为 | 非 Windows / 差异说明 | 依据 |
+| 功能 | Windows | Linux（X11/Wayland，非 root，systemd/elogind） | macOS（非 root） |
 | --- | --- | --- | --- |
-| 计时关机 | `shutdown` 定时关机 | 源版以 WinForms 弹窗自动确认（SendKeys）的环节不迁，改为纯命令路径 | Actions\ShutdownAction.cs；p2-01 §2-A4；06 条目 37 |
-| 高级计时关机 | 计划/取消/立即三操作，对话框随源 | 源版固定进程名轮询「看门狗」不迁：宿主正常退出时自动取消本地计划（而非按进程名探测） | Actions\AdvancedShutdownAction.cs；p2-01 §2-A2/A5；06 条目 38 |
-| 取消关机计划 | `shutdown /a` | 退出码 1116（本就无计划）提示「当前没有活动的关机计划」，不算失败 | Actions\CancelShutdownAction.cs；p2-01 §2-A8；06 条目 39 |
-| 锁定屏幕 | `rundll32` 锁定 | 非 Windows 提示不可用 | Actions\LockScreenAction.cs；06 条目 40 |
-| 立即重启 | `shutdown /g /t 0` | 原版直接调用系统底层接口（未公开 API），改为命令等效口径 `/g`（重启并重新登录启动应用） | Actions\ImmediateRestartAction.cs；p2-01 §2（裁决 1）；06 条目 41 |
-| 立即关机 | `shutdown /s /t 0` | 同上（`/s` 等效） | Actions\ImmediateShutdownAction.cs；06 条目 42 |
-| 睡眠 | `rundll32` 睡眠 | 同步调用改为有界等待（约 1.5 秒）：超时按「已发起、未确认」处理，不误报失败 | Actions\SleepAction.cs；p2-01 §2-D7；06 条目 43 |
+| 计时关机 | `shutdown /s /t N`（OS 级计划） | 应用内计划 `ShutdownPlanCenter`，到点 `systemctl poweroff`（elogind 回退 loginctl） | 应用内计划（同上），到点 System Events 关机 |
+| 高级计时关机 | 计划/取消/立即三操作，对话框随源 | 同左（计划落应用内，对话框跨平台） | 同左 |
+| 取消关机计划 | `shutdown /a`（1116=无计划文案） | 取消应用内计划（无计划同 1116 文案） | 同左 |
+| 锁定屏幕 | `rundll32 user32.dll,LockWorkStation` | `loginctl lock-session`（需桌面环境监听 lock 信号） | **不注册不显示**（非 root 无公共途径） |
+| 立即重启 | `shutdown /g /t 0` | `systemctl reboot`（elogind 回退 loginctl） | System Events restart（TCC） |
+| 立即关机 | `shutdown /s /t 0` | `systemctl poweroff`（elogind 回退 loginctl） | System Events shut down（TCC） |
+| 睡眠 | `rundll32 powrprof SetSuspendState`（有界等待） | `systemctl suspend`（命令阻塞至唤醒，超时按“已发起”；elogind 回退 loginctl） | `pmset sleepnow` |
 
-高级关机对话框（AdvancedShutdownDialog/ExtendShutdownDialog）为跨平台 UI，仅 Windows 达成预检后可达。
+说明：
+- **注册门**：Windows 全 7 项（shutdown.exe/rundll32.exe 存在）；Linux 全 7 项（`systemctl` 或 `loginctl` 可用且处于图形会话；
+  X11 与 Wayland 均按用户裁决注册）；macOS 6 项（osascript 存在；睡眠另需 pmset；锁定屏幕除外）。
+- **后端归属更正**：systemd 的电源动词（poweroff/reboot/suspend）自始属于 `systemctl`，`loginctl` 仅有会话类动词（lock-session 等）；初版误用 `loginctl` 执行电源动词导致运行时 “Unknown command verb”，已更正为 systemctl 优先、elogind 系（无 systemctl，其 loginctl 带电源动词）回退；锁屏始终走 `loginctl lock-session`。
+- **定时关机族语义**：Linux/macOS 无“非 root 系统级定时关机”，改由插件内倒计时（`ShutdownPlanCenter.cs`），
+  到点调用平台“立即关机”原语；宿主正常退出即取消（与 Windows“宿主退出即取消 OS 计划”的用户可见语义一致；
+  宿主崩溃场景不再兜底执行——已按用户裁决接受）。Windows 路径保持 OS 级计划不变。
+- **失败如实上报**：polkit/TCC 拒绝、命令失败均弹提示并记日志；macOS 首次关机/重启会触发系统“自动化”授权询问
+  （拒绝后提示前往系统设置授权）。
+- 高级关机对话框（AdvancedShutdownDialog/ExtendShutdownDialog）为跨平台 UI，凡能力门放行的平台均可达。
 
 ### 2.2 内存自动清理（GC 三平台、工作集修剪仅 Windows）
 

@@ -10,12 +10,6 @@ using SystemTools.CrossPlatform.Services;
 
 namespace SystemTools.CrossPlatform.Settings;
 
-/// <summary>
-/// 悬浮窗触发器设置控件。抽取自源插件 Settings\FloatingWindowTriggerSettings.cs，
-/// 图标选择使用与 ClassIsland「提醒 → 图标选择」完全一致的图标表达式编辑器
-/// （Fluent / Lucide / 图像 三个页签 + 名称或 Unicode 码搜索 + 图片浏览），
-/// 全部为跨平台能力（Avalonia + 宿主持久化文件选择器，无平台绑定）。
-/// </summary>
 public class FloatingWindowTriggerSettings : TriggerSettingsControlBase<FloatingWindowTriggerConfig>
 {
     private readonly IconExpressionEditor _iconEditor = new();
@@ -25,7 +19,6 @@ public class FloatingWindowTriggerSettings : TriggerSettingsControlBase<Floating
     {
         var panel = new StackPanel { Spacing = 10, Margin = new Thickness(10) };
 
-        // 图标行：与 ClassIsland 提醒设置「启用标题左侧图标」同款布局（左侧说明，右侧图标选择器）
         var iconRow = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
@@ -33,7 +26,7 @@ public class FloatingWindowTriggerSettings : TriggerSettingsControlBase<Floating
         };
         iconRow.Children.Add(new TextBlock
         {
-            Text = "悬浮窗按钮图标",
+            Text = "按钮图标",
             TextWrapping = TextWrapping.Wrap,
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -41,13 +34,6 @@ public class FloatingWindowTriggerSettings : TriggerSettingsControlBase<Floating
         Grid.SetColumn(_iconEditor, 1);
         iconRow.Children.Add(_iconEditor);
         panel.Children.Add(iconRow);
-
-        panel.Children.Add(new TextBlock
-        {
-            Text = "支持 Fluent / Lucide 字体图标与本地图片（ClassIsland 图标表达式）",
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = Brushes.Gray
-        });
 
         panel.Children.Add(new TextBlock
         {
@@ -90,7 +76,6 @@ public class FloatingWindowTriggerSettings : TriggerSettingsControlBase<Floating
     {
         base.OnInitialized();
         _nameTextBox.Text = Settings.ButtonName;
-        // 旧版 /uXXXX 配置迁移为图标表达式（编辑器可直接识别）
         _iconEditor.IconExpression = FloatingWindowIconProvider.NormalizeForStorage(Settings.Icon);
     }
 }

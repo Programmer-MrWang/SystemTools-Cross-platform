@@ -20,22 +20,6 @@ using SystemTools.CrossPlatform.Triggers;
 
 namespace SystemTools.CrossPlatform.Services;
 
-/// <summary>
-/// 悬浮窗服务（B11/B12 域）。抽取自源插件 Services\FloatingWindowService.cs，按 04-spec
-/// 已批口径适配：
-/// 1. 经典外观（窗口创建/按钮渲染/拖拽/位置记忆/方案与规则集消费）逐行保留（R-3 保留面）；
-/// 2. 窗口层级改经宿主 IWindowPlatformService.SetWindowFeature（Topmost/Bottommost，p0-03 B12
-///    替换目标，p2-05 §4 双分支核对面）；宿主特性不可用（Stub）时保持 Avalonia Topmost 默认语义；
-/// 3. 源 Windows 钩子子特性（前台/重排事件钩子驱动的层级自动重检、低级输入钩子驱动的合成触控
-///    识别）按 R-3 明示降级移除，层级仅在显式时点（Start/UpdateWindowState/SetWindowLayer/
-///    SwitchToProfile/Loaded）一次性应用；FloatingWindowLayerRecheckMode 配置成员随源引入保持
-///    配置兼容，运行时不消费（p2-05 §2.1 #6 已批口径）；
-/// 4. 液态玻璃材质与背景采样、自适应背景主题采样按 U5/R-6 已批降级不迁；经典外观的窗口底色/
-///    不透明度/阴影绘制面（源自源经典分支）保留为 ApplyWindowAppearance；
-/// 5. 「自适应背景」主题项已移除：主题仅保留 0=跟随 ClassIsland/1=浅色/2=深色；旧配置值 3 由
-///    MainConfigData 归一为 0（与 U5 降级语义一致：值 3 原即解析为跟随宿主明暗）。
-/// 降级处置逐条登记见 p2-03 批证据；窗口刷新路径恢复供 A3/A4 回归（p1-03 §7-5 交接）。
-/// </summary>
 public class FloatingWindowService
 {
     private const int FollowClassIslandTheme = 0;
@@ -260,8 +244,6 @@ public class FloatingWindowService
 
     private ThemeVariant ResolveWindowThemeVariant()
     {
-        // 「自适应背景」项已移除：主题仅 0/1/2（旧配置 3 由 MainConfigData 归一为 0）。
-        // 0=跟随 ClassIsland 与默认分支一致，取窗口/应用当前明暗变体。
         return _configHandler.Data.FloatingWindowTheme switch
         {
             LightTheme => ThemeVariant.Light,
@@ -275,10 +257,6 @@ public class FloatingWindowService
         return ResolveWindowThemeVariant() == ThemeVariant.Light;
     }
 
-    /// <summary>
-    /// 设置悬浮窗主题
-    /// </summary>
-    /// <param name="theme">0=跟随 ClassIsland, 1=浅色, 2=深色（自适应背景项已移除，旧值 3 归一为 0）</param>
     public void SetWindowTheme(int theme)
     {
         var normalized = theme is LightTheme or DarkTheme
@@ -294,9 +272,6 @@ public class FloatingWindowService
         Dispatcher.UIThread.Post(RefreshWindowButtons);
     }
 
-    /// <summary>
-    /// 切换到下一个悬浮窗主题
-    /// </summary>
     public void ToggleWindowTheme()
     {
         var next = (_configHandler.Data.FloatingWindowTheme + 1) % 3;
@@ -352,7 +327,6 @@ public class FloatingWindowService
             if (!_allowWindowClose)
             {
                 e.Cancel = true;
-                // 不在 Closing 事件中调用 Show()，窗口可能处于关闭过程中
             }
         };
         _window.PropertyChanged += OnWindowPropertyChanged;
@@ -488,9 +462,6 @@ public class FloatingWindowService
         }
     }
 
-    /// <summary>
-    /// 经典外观绘制面（源自源经典外观分支的提取保留）：窗口底色随明暗与不透明度、圆角、阴影。
-    /// </summary>
     private void ApplyWindowAppearance()
     {
         if (_windowContainer == null)
@@ -869,7 +840,6 @@ public class FloatingWindowService
             rowIndex++;
         }
 
-        // 仅在"至少有一个可见按钮"时才显示拖拽把手，避免孤零零一个把手
         var hasVisibleButtons = _stackPanel.Children.Count > 0;
         if (hasVisibleButtons)
         {
@@ -879,10 +849,6 @@ public class FloatingWindowService
         }
     }
 
-    /// <summary>
-    /// 判断是否至少有 1 个按钮在"经过规则集过滤后"是可见的。
-    /// 用于避免悬浮窗在没有任何可见按钮时（被规则集全部隐藏）仍然显示。
-    /// </summary>
     private bool HasAnyVisibleButton()
     {
         if (_entries.Count == 0)
@@ -941,7 +907,6 @@ public class FloatingWindowService
         var profile = _profileManager.CurrentProfile;
         var validButtonIds = _entries.Values.Select(x => x.ButtonId).ToHashSet();
 
-        // 清理不存在的按钮ID
         if (profile.PruneInvalidButtonIds(validButtonIds))
         {
             _profileManager.SaveProfile();
@@ -1210,8 +1175,6 @@ public class FloatingWindowService
 
     private bool IsTouchLikePointer(PointerEventArgs e)
     {
-        // 源经低级输入钩子识别“合成鼠标事件的触控设备”（R-3 降级面，钩子不迁）；
-        // 降级后时间戳恒为 MinValue，合成识别路径恒为 false，触控语义由指针类型直接承载。
         return e.Pointer.Type == PointerType.Touch
                || (e.Pointer.Type == PointerType.Mouse && IsRecentTouchGeneratedMouseEvent());
     }
@@ -1396,9 +1359,6 @@ public class FloatingWindowService
 
     private void EnsureRulesetPatrol()
     {
-        // 规则集巡检由 ILessonsService.PostMainTimerTicked 驱动（源形态保留，R-3 规则隐藏保留面）。
-        // 源层级自动重检钩子面（前台/重排事件钩子与定时器模式）按 R-3 明示降级移除，
-        // 层级仅在显式时点经 IWindowPlatformService.SetWindowFeature 应用。
         _lessonsService ??= IAppHost.TryGetService<ILessonsService>();
         if (_lessonsService != null)
         {
@@ -1420,7 +1380,6 @@ public class FloatingWindowService
         CheckFloatingWindowRuleset();
         CheckButtonRulesets();
         CheckRowRulesets();
-        // 兜底 ApplyVisibility：避免所有按钮都被隐藏但窗口仍显示
         ApplyVisibility();
     }
 
@@ -1431,8 +1390,6 @@ public class FloatingWindowService
             return;
         }
 
-        // p0-03 B12 替换目标：源置顶/置底调用改经宿主窗口平台服务承载；
-        // 宿主特性不可用（Stub）时保持 Avalonia Topmost 默认层级语义（已批降级口径）。
         var windowPlatformService = PlatformServices.WindowPlatformService;
         if (_configHandler.Data.FloatingWindowLayer == 0)
         {
@@ -1507,7 +1464,6 @@ public class FloatingWindowService
             return;
         }
 
-        // 只在当前方案文件还存在时才保存，避免刚被删除的方案被重新写回磁盘
         if (_profileManager.ProfileFileExists(_profileManager.CurrentProfileName))
         {
             _profileManager.SaveProfile();

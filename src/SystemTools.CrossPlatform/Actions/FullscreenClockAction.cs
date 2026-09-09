@@ -22,9 +22,6 @@ public class FullscreenClockAction(ILogger<FullscreenClockAction> logger) : Acti
         {
             _logger.LogInformation("正在打开沉浸式时钟: {Url}", ClockUrl);
 
-            // 降级口径适配（p0-03 A10 / 02 §2.5 建议，04-spec 已批）：源实现经进程启动并按
-            // Shell 语义打开 URL，此处改经宿主 ILauncherService.LaunchUrl 三平台打开；
-            // 获取失败时与源失败路径一致：记录日志并抛出行动错误。
             var launcher = IAppHost.GetService<ILauncherService>()
                 ?? throw new InvalidOperationException("无法获取 ILauncherService，无法打开沉浸式时钟");
             await launcher.LaunchUrl(ClockUrl);

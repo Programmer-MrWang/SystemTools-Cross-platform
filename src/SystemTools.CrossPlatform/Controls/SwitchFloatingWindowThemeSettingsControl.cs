@@ -62,7 +62,6 @@ public class SwitchFloatingWindowThemeSettingsControl : ActionSettingsControlBas
     {
         if (Settings == null) return;
 
-        // 旧行动配置中的目标值 3（自适应背景，已移除）按 0=跟随系统 恢复显示。
         var index = Settings.TargetTheme switch
         {
             0 => 1,

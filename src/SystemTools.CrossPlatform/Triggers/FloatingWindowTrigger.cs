@@ -11,9 +11,7 @@ using SystemTools.CrossPlatform.Services;
 namespace SystemTools.CrossPlatform.Triggers;
 
 /// <summary>
-/// 「从悬浮窗触发」触发器。抽取自源插件 Triggers\FloatingWindowTrigger.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整并补充 Config 类型引用；
-/// 功能 ID 按前缀规则变换，其余逐行保留源实现；auto.json 对端为 A7 TriggerCustomTriggerAction）。
+/// 从悬浮窗触发触发器
 /// </summary>
 [TriggerInfo("SystemTools.CrossPlatform.FloatingWindowTrigger", "从悬浮窗触发", "\uEA37")]
 public class FloatingWindowTrigger : TriggerBase<FloatingWindowTriggerConfig>

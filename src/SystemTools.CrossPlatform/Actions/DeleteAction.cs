@@ -25,8 +25,6 @@ public class DeleteAction(ILogger<DeleteAction> logger) : ActionBase<DeleteSetti
 
         try
         {
-            // 跨平台路径适配：源 :39 为 TrimEnd('\\')（仅剥离反斜杠）；
-            // 改用 BCL TrimEndingDirectorySeparator，同时正确处理 Windows 反斜杠与 Unix 斜杠。
             var targetPath = Path.TrimEndingDirectorySeparator(Settings.TargetPath);
 
             if (Settings.OperationType == "文件")
@@ -57,10 +55,6 @@ public class DeleteAction(ILogger<DeleteAction> logger) : ActionBase<DeleteSetti
                     throw new DirectoryNotFoundException($"文件夹不存在: {targetPath}");
                 }
 
-                // 文件夹分支跨平台适配（06 条目 36）：源 :69-81 经 shell 执行递归删除并按退出码判定失败；
-                // 改为 BCL Directory.Delete(recursive: true)，路径参数直接传入 BCL API、不经过 shell 拼接；
-                // 失败语义与源一致（记录错误并抛出行动错误；保留源的存在性预检，目标缺失按错误抛出，
-                // 仅“目标已不存在”以外的失败不得静默成功）。
                 try
                 {
                     Directory.Delete(targetPath, true);

@@ -5,8 +5,7 @@ using SystemTools.CrossPlatform.Settings;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 高级计时关机设置控件（p2-01 B5 附属；源锚点 E:\My Github Projects\SystemTools\Controls\AdvancedShutdownSettingsControl.cs 全 54 行随源，
-/// 仅命名空间与设置类型引用改写为 SystemTools.CrossPlatform.*）。
+/// 高级计时关机设置控件
 /// </summary>
 public class AdvancedShutdownSettingsControl : ActionSettingsControlBase<AdvancedShutdownSettings>
 {

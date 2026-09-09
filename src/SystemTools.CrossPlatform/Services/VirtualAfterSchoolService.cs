@@ -213,8 +213,6 @@ public sealed class VirtualAfterSchoolService(
         _isVirtualStateActive = false;
         _activeStopwatch.Reset();
 
-        // 保留 AfterSchool 作为上一个事件状态。恢复后的首个课程 Tick 会据此
-        // 发布真实状态的变更事件，并重新填充全部课程字段。
         SetLessonsServiceProperty("CurrentOverlayEventStatus", TimeState.AfterSchool);
         if (resumeLessonsTimer)
         {

@@ -1,4 +1,3 @@
-// 来源：SystemTools（主插件）Helpers\SimpleExpression\SimpleExpressionParser.cs → 抽取自 ClassIsland 主程序（LGPL-3.0-only，同许可）。
 using System;
 using System.Collections.Generic;
 using System.Text;

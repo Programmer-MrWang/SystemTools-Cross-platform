@@ -27,8 +27,6 @@ public class FloatingWindowProfileManager
 
     public FloatingWindowProfileManager()
     {
-        // 适配点：存储根由源插件的跨插件共享缓存目录改为本插件独立配置目录（04-spec S7/R5 独立配置决议，
-        // 避免与源插件同装时的方案文件冲突）；方案加载/保存/创建/删除/重命名语义与源实现逐行一致。
         var configRoot = GlobalConstants.PluginConfigFolder;
         if (string.IsNullOrWhiteSpace(configRoot))
         {
@@ -42,9 +40,6 @@ public class FloatingWindowProfileManager
         }
     }
 
-    /// <summary>
-    /// 从旧版 MainConfigData 迁移配置到文件存储
-    /// </summary>
     public void MigrateFromLegacyConfig(MainConfigData legacyData)
     {
         var defaultPath = GetProfilePath("Default");
@@ -68,9 +63,6 @@ public class FloatingWindowProfileManager
 
     public string ProfilesDirectory => _profilesDirectory;
 
-    /// <summary>
-    /// 判断指定名称的方案文件是否存在于磁盘。
-    /// </summary>
     public bool ProfileFileExists(string profileName)
     {
         if (string.IsNullOrWhiteSpace(profileName))
@@ -94,9 +86,6 @@ public class FloatingWindowProfileManager
         }
     }
 
-    /// <summary>
-    /// 获取所有可用的方案名称列表
-    /// </summary>
     public IReadOnlyList<string> GetProfileNames()
     {
         if (!Directory.Exists(_profilesDirectory))
@@ -118,9 +107,6 @@ public class FloatingWindowProfileManager
         return names;
     }
 
-    /// <summary>
-    /// 加载指定名称的方案
-    /// </summary>
     public void LoadProfile(string profileName)
     {
         if (string.IsNullOrWhiteSpace(profileName))
@@ -131,8 +117,6 @@ public class FloatingWindowProfileManager
         var path = GetProfilePath(profileName);
         if (!File.Exists(path))
         {
-            // 文件不存在时只在内存中加载默认模板，不写回磁盘，
-            // 避免被显式删除的方案被自动重建。
             _currentProfile = ConfigureFileHelper.CopyObject(DefaultProfile);
             _currentProfile.Name = profileName;
         }
@@ -145,18 +129,12 @@ public class FloatingWindowProfileManager
         _currentProfileName = profileName;
     }
 
-    /// <summary>
-    /// 保存当前方案
-    /// </summary>
     public void SaveProfile()
     {
         var path = GetProfilePath(_currentProfileName);
         ConfigureFileHelper.SaveConfig(path, _currentProfile);
     }
 
-    /// <summary>
-    /// 创建新方案，基于当前方案或默认方案
-    /// </summary>
     public string CreateProfile(string? name = null)
     {
         var baseName = name?.Trim();
@@ -182,9 +160,6 @@ public class FloatingWindowProfileManager
         return profileName;
     }
 
-    /// <summary>
-    /// 删除指定方案
-    /// </summary>
     public bool RemoveProfile(string profileName)
     {
         if (string.Equals(profileName, "Default", StringComparison.OrdinalIgnoreCase))
@@ -209,9 +184,6 @@ public class FloatingWindowProfileManager
         }
     }
 
-    /// <summary>
-    /// 重命名方案
-    /// </summary>
     public bool RenameProfile(string oldName, string newName)
     {
         if (string.IsNullOrWhiteSpace(newName) || string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase))

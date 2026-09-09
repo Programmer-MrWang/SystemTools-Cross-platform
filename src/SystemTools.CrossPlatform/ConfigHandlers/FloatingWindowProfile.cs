@@ -7,7 +7,6 @@ namespace SystemTools.CrossPlatform.ConfigHandlers;
 
 /// <summary>
 /// 悬浮窗配置方案，仅保存悬浮窗按钮布局以及按钮/行规则集。
-/// 注意：外观、位置、层级、显示状态和整窗规则集是全局设置，不随方案切换。
 /// </summary>
 public partial class FloatingWindowProfile : ObservableObject
 {
@@ -31,9 +30,6 @@ public partial class FloatingWindowProfile : ObservableObject
     [JsonPropertyName("floatingWindowRowRulesets")]
     public List<RowRulesetConfig> FloatingWindowRowRulesets { get; set; } = new();
 
-    /// <summary>
-    /// 清理不存在的按钮ID，返回是否有变更
-    /// </summary>
     public bool PruneInvalidButtonIds(IEnumerable<string> validButtonIds)
     {
         var validSet = validButtonIds.ToHashSet();

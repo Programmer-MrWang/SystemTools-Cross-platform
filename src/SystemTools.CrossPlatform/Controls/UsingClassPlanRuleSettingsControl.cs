@@ -12,8 +12,7 @@ using SystemTools.CrossPlatform.Rules;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 「正在使用某课程表」规则设置控件。抽取自源插件 Controls\UsingClassPlanRuleSettingsControl.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整并补充规则设置类型引用，其余逐行保留源实现）。
+/// 正在使用某课程表规则设置控件
 /// </summary>
 public class UsingClassPlanRuleSettingsControl : RuleSettingsControlBase<UsingClassPlanRuleSettings>
 {

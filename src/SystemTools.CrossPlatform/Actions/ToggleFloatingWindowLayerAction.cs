@@ -12,11 +12,6 @@ using SystemTools.CrossPlatform.Shared;
 
 namespace SystemTools.CrossPlatform.Actions;
 
-/// <summary>
-/// 切换悬浮窗层级行动。抽取自源插件 Actions\ToggleFloatingWindowLayerAction.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整、功能 ID 按前缀规则变换、
-/// using 按本插件共享类型命名空间改写，其余逐行保留源实现）。
-/// </summary>
 [ActionInfo("SystemTools.CrossPlatform.ToggleFloatingWindowLayer", "切换悬浮窗层级", "\uE9A8", false)]
 public class ToggleFloatingWindowLayerAction(ILogger<ToggleFloatingWindowLayerAction> logger) : ActionBase<ToggleFloatingWindowLayerSettings>
 {
@@ -36,8 +31,6 @@ public class ToggleFloatingWindowLayerAction(ILogger<ToggleFloatingWindowLayerAc
                 return;
             }
 
-            // 根据设置决定是切换还是设置到指定层级
-            // TargetLayer: -1=切换, 0=置底, 1=置顶
             if (Settings.TargetLayer >= 0)
             {
                 if (IsRevertable)

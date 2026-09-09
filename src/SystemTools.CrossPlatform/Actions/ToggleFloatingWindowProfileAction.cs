@@ -14,9 +14,6 @@ using ClassIsland.Core.Models.Notification;
 
 namespace SystemTools.CrossPlatform.Actions;
 
-/// <summary>
-/// 切换悬浮窗配置方案行动
-/// </summary>
 [ActionInfo("SystemTools.CrossPlatform.ToggleFloatingWindowProfile", "切换悬浮窗配置方案", "\uE9A8", false)]
 public class ToggleFloatingWindowProfileAction(ILogger<ToggleFloatingWindowProfileAction> logger) : ActionBase<ToggleFloatingWindowProfileSettings>
 {
@@ -32,8 +29,6 @@ public class ToggleFloatingWindowProfileAction(ILogger<ToggleFloatingWindowProfi
             var profileManager = IAppHost.GetService<FloatingWindowProfileManager>();
             var currentProfileName = profileManager.CurrentProfileName;
 
-            // 根据设置决定是切换到下一个还是切换到指定方案
-            // TargetProfileName: null=切换到下一个, 其他=指定方案名称
             if (!string.IsNullOrWhiteSpace(Settings.TargetProfileName))
             {
                 if (IsRevertable)
@@ -94,9 +89,6 @@ public class ToggleFloatingWindowProfileAction(ILogger<ToggleFloatingWindowProfi
         }
     }
 
-    // 阶段 1 适配：源实现经悬浮窗服务（阶段 2 B 档交付）切换方案；此处以本批引入的共享类型
-    // FloatingWindowProfileManager 与 MainConfig 配置状态面执行等价的状态迁移
-    // （保存当前方案→加载目标方案→更新当前方案名→落盘），窗口刷新路径随悬浮窗服务交付后恢复。
     private void SwitchToProfile(FloatingWindowProfileManager profileManager, string profileName)
     {
         if (string.IsNullOrWhiteSpace(profileName))
@@ -110,7 +102,6 @@ public class ToggleFloatingWindowProfileAction(ILogger<ToggleFloatingWindowProfi
             return;
         }
 
-        // 只在当前方案文件还存在时才保存，避免刚被删除的方案被重新写回磁盘
         if (profileManager.ProfileFileExists(profileManager.CurrentProfileName))
         {
             profileManager.SaveProfile();

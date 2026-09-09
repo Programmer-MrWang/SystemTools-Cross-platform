@@ -12,10 +12,7 @@ using SystemTools.CrossPlatform.Rules;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 「程序正在运行」规则设置控件。抽取自源插件 Controls\ProcessRunningRuleSettingsControl.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整并补充规则设置类型引用，其余逐行保留源实现；
-/// 「查看正在运行的进程」辅助按钮经尚书省裁决②对齐 p1-03 D3 口径改为 BCL 进程枚举跨平台获取
-/// （进程名 + PID 定宽文本列表），窗口/复制/失败弹窗 UI 与"获取进程列表失败"文案随源保留）。
+/// 程序正在运行规则设置控件
 /// </summary>
 public class ProcessRunningRuleSettingsControl : RuleSettingsControlBase<ProcessRunningRuleSettings>
 {
@@ -62,8 +59,6 @@ public class ProcessRunningRuleSettingsControl : RuleSettingsControlBase<Process
     {
         try
         {
-            // 裁决②适配（对齐 p1-03 D3 口径）：源实现经启动系统命令行工具获取进程列表（Windows 专属），
-            // 此处改经 BCL 进程枚举跨平台获取（进程名 + PID），失败提示语义与源一致。
             var output = string.Join(Environment.NewLine, Process.GetProcesses()
                 .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
                 .Select(p => $"{p.ProcessName,-40}{p.Id,10}"));

@@ -12,11 +12,6 @@ using SystemTools.CrossPlatform.Shared;
 
 namespace SystemTools.CrossPlatform.Actions;
 
-/// <summary>
-/// 「显示悬浮窗」行动。抽取自源插件 Actions\ShowFloatingWindowAction.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整、功能 ID 按前缀规则变换、
-/// using 按本插件共享类型命名空间改写，其余逐行保留源实现）。
-/// </summary>
 [ActionInfo("SystemTools.CrossPlatform.ShowFloatingWindow", "显示悬浮窗", "\uEA37", false)]
 public class ShowFloatingWindowAction(
     ILogger<ShowFloatingWindowAction> logger,
@@ -35,7 +30,6 @@ public class ShowFloatingWindowAction(
             var shouldShow = Settings.ShowFloatingWindow;
             var config = GlobalConstants.MainConfig?.Data;
 
-            // 如果没有可用的悬浮窗组件，则强制隐藏且不允许显示
             if (_floatingWindowService.Entries.Count == 0)
             {
                 shouldShow = false;

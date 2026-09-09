@@ -35,8 +35,6 @@ public class FullscreenClockSettingsControl : ActionSettingsControlBase<Fullscre
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
         };
 
-        // 降级口径适配：源实现经进程启动打开 URL（Windows Shell 语义），
-        // 此处改经宿主 ILauncherService.LaunchUrl 三平台打开；获取失败时记录日志，不中断界面。
         linkText.PointerPressed += async (s, e) =>
         {
             try

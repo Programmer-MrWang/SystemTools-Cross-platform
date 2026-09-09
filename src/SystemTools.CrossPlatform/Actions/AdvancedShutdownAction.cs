@@ -20,38 +20,9 @@ using SystemTools.CrossPlatform.Views;
 
 namespace SystemTools.CrossPlatform.Actions;
 
-// ============================================================================
-// p2-01 B5 高级计时关机（源锚点 E:\My Github Projects\SystemTools\Actions\AdvancedShutdownAction.cs）
-// ============================================================================
-// 本行动全部 Windows 命令启动（计划/取消/立即关机）统一由 Actions\SystemPowerCommand.cs
-// 执行器承载（单一 net10.0 产物，运行期平台分派）。
-//
-// 已批机制适配点（尚书省裁决 1 + 06 条目 38，逐条留痕于证据 p2-01 §3）：
-//  1. 计划载体：源 :156-180 经系统命令解释器包装倒计时进程（cmd 倒计时 + 到点关机），改为
-//     「先取消旧计划 + 直接按总秒数计划」的系统命令族形态（Windows 仅允许单一关机计划；
-//     源本地进程 kill 语义的等价改写，无本地倒计时进程可跟踪）。
-//  2. 看门狗：源 :25/:77-87 固定宿主进程名轮询 + :256-291 计划活性轮询，按 06 条目 38
-//     「看门狗改用宿主生命周期事件，不检查固定 .exe 名称」移除；宿主退出路径由礼部生命周期
-//     接线调用 CancelPlanOnAppStopping(bool) 承担（源 Plugin.cs:1048 先例；p2-05 §1.2 非计数附属行）。
-//  3. 取消可见性：源 :201-219 TryAbortSystemShutdown 吞异常，按 06 条目 38「吞异常不能掩盖未取消」
-//     修订为记录退出码 + 用户取消路径失败提示。
-//  4. 立即关机按钮：源 :388-406 进程启动 + 仅记日志，改为执行器退出码判定 + 失败 Toast（U4）。
-//  5. 静态取消路径（CancelPlanOnAppStopping，源 :40-54）保留静态 bool 契约；类改用经典构造函数
-//     以缓存静态 logger（静态方法无法访问主构造函数参数，可观测性适配）。
-//  6. UI（对话框/悬浮窗/动画/倒计时文本）随源逐行保留；MyWindow/FluentIcon 为双分支 PRESENT 宿主类型。
-//  7. U4（04-spec.md:90）：执行前运行时 OS/能力预检；预检/执行失败经 IDesktopToastService 降级提示
-//     并正常结束行动（await base.OnInvoke()），不抛未处理异常。
-// ============================================================================
 [ActionInfo("SystemTools.CrossPlatform.AdvancedShutdown", "高级计时关机", "\uE4D2", false)]
 public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
 {
-    // 系统取消命令“当前无活动关机计划”退出码（B6/B5 共用语义，非失败）。
-    private const int NoShutdownInProgressExitCode = 1116;
-
-    // 执行器返回约定：-1 = 启动失败；-2 = 有界等待超时（未确认）。
-    private const int StartFailedExitCode = -1;
-
-    // 静态取消路径的可观测性：静态方法无法访问主构造函数 logger，构造时缓存（适配点 5）。
     private static ILogger? _sharedLogger;
 
     private readonly ILogger<AdvancedShutdownAction> _logger;
@@ -71,10 +42,6 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
         _sharedLogger = logger;
     }
 
-    /// <summary>
-    /// 宿主生命周期接线入口（礼部按源 Plugin.cs:1048 形态在 AppStopping 调用；p2-05 §1.2：
-    /// 本静态方法仅收 bool，与 p2-03 SystemShutdownMonitor 文件无编译耦合）。首次调用返回 true。
-    /// </summary>
     public static bool CancelPlanOnAppStopping(bool isSessionEnding)
     {
         if (Interlocked.Exchange(ref _appStoppingHandled, 1) != 0)
@@ -84,9 +51,8 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
 
         if (!isSessionEnding)
         {
-            // 宿主主动退出（非系统关机/注销）：取消系统关机计划；结果记日志，不吞“未取消”（适配点 3）。
-            var abortCode = SystemPowerCommand.RunCancelScheduledShutdown();
-            _sharedLogger?.LogInformation("宿主退出取消关机计划：exit={ExitCode}（无活动计划时属预期）。", abortCode);
+            var abortResult = SystemPowerCommand.RunCancelScheduledShutdown();
+            _sharedLogger?.LogInformation("宿主退出取消关机计划：exit={ExitCode}（无活动计划时属预期）。", abortResult.ExitCode);
         }
 
         return true;
@@ -96,10 +62,9 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
     {
         _logger.LogDebug("AdvancedShutdownAction OnInvoke 开始");
 
-        // U4 预检 1：运行时 OS/能力预检（04-spec:76 允许的运行时守卫分支形态）。
-        if (!OperatingSystem.IsWindows() || !SystemPowerCommand.IsShutdownCommandAvailable())
+        if (!SystemPowerCapability.IsActionSupported(SystemPowerCapability.AdvancedShutdownId))
         {
-            _logger.LogWarning("高级计时关机预检未通过（平台或命令能力不可用），按 U4 降级跳过执行。");
+            _logger.LogWarning("高级计时关机预检未通过：当前环境不支持（平台能力门），跳过执行。");
             await NotifyDegradedAsync("高级计时关机", "高级计时关机在当前环境不可用，已跳过执行");
             await base.OnInvoke();
             return;
@@ -110,7 +75,6 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
             var configuredMinutes = Math.Max(1, Settings?.Minutes ?? 2);
             if (!ScheduleShutdown(configuredMinutes))
             {
-                // 06 条目 38：系统动作不可用 → Toast 通知失败原因，正常结束行动。
                 await NotifyDegradedAsync("高级计时关机", "计划关机命令未被执行");
                 await base.OnInvoke();
                 return;
@@ -134,15 +98,14 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
         var safeMinutes = Math.Max(1, minutes);
         var seconds = safeMinutes * 60;
 
-        // 适配点 1：先取消旧计划再计划（系统仅允许单一关机计划；无旧计划时取消返回非零仅记日志，
-        // 不影响后续计划；源本地倒计时进程 kill 语义的等价改写）。
-        var abortCode = SystemPowerCommand.RunCancelScheduledShutdown();
-        _logger.LogDebug("计划前取消旧计划：exit={ExitCode}", abortCode);
+        var abortResult = SystemPowerCommand.RunCancelScheduledShutdown();
+        _logger.LogDebug("计划前取消旧计划：exit={ExitCode}", abortResult.ExitCode);
 
-        var scheduleCode = SystemPowerCommand.RunTimedShutdown(seconds);
-        if (scheduleCode != 0)
+        var scheduleResult = SystemPowerCommand.RunTimedShutdown(seconds);
+        if (scheduleResult.ExitCode != PowerCommandResult.Ok)
         {
-            _logger.LogError("计划关机命令未被执行（exit={ExitCode}）。秒数: {Seconds}", scheduleCode, seconds);
+            _logger.LogError("计划关机命令未被执行（exit={ExitCode}，detail={Detail}）。秒数: {Seconds}",
+                scheduleResult.ExitCode, scheduleResult.Detail, seconds);
             return false;
         }
 
@@ -204,14 +167,14 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
         var totalSeconds = (int)Math.Ceiling((targetTime - DateTimeOffset.Now).TotalSeconds);
         totalSeconds = Math.Max(60, totalSeconds);
 
-        // 适配点 1：与 ScheduleShutdown 同一命令族语义——先取消旧计划再按延长后的总秒数重计划。
-        var abortCode = SystemPowerCommand.RunCancelScheduledShutdown();
-        _logger.LogDebug("延长重计划前取消旧计划：exit={ExitCode}", abortCode);
+        var abortResult = SystemPowerCommand.RunCancelScheduledShutdown();
+        _logger.LogDebug("延长重计划前取消旧计划：exit={ExitCode}", abortResult.ExitCode);
 
-        var scheduleCode = SystemPowerCommand.RunTimedShutdown(totalSeconds);
-        if (scheduleCode != 0)
+        var scheduleResult = SystemPowerCommand.RunTimedShutdown(totalSeconds);
+        if (scheduleResult.ExitCode != PowerCommandResult.Ok)
         {
-            _logger.LogError("延长后的计划关机命令未被执行（exit={ExitCode}），总秒数: {Seconds}", scheduleCode, totalSeconds);
+            _logger.LogError("延长后的计划关机命令未被执行（exit={ExitCode}，detail={Detail}），总秒数: {Seconds}",
+                scheduleResult.ExitCode, scheduleResult.Detail, totalSeconds);
             return false;
         }
 
@@ -222,39 +185,37 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
     private void CancelShutdownPlan()
     {
         var hadPlan = IsPlanActive();
-        var abortCode = StopAllStates();
+        var abortResult = StopAllStates();
         if (!hadPlan)
         {
             return;
         }
 
-        if (abortCode == 0)
+        if (abortResult.ExitCode == PowerCommandResult.Ok)
         {
             _logger.LogInformation("关机计划已取消。");
         }
-        else if (abortCode == NoShutdownInProgressExitCode)
+        else if (abortResult.ExitCode == PowerCommandResult.NoShutdownInProgress)
         {
-            _logger.LogInformation("取消时已无活动关机计划（exit={ExitCode}，可能已被外部取消）。", abortCode);
+            _logger.LogInformation("取消时已无活动关机计划（exit={ExitCode}，可能已被外部取消）。", abortResult.ExitCode);
         }
         else
         {
-            // 适配点 3：06 条目 38——取消失败不得被吞掉，记录并提示用户。
-            _logger.LogWarning("取消关机计划未生效（exit={ExitCode}）。", abortCode);
+            _logger.LogWarning("取消关机计划未生效（exit={ExitCode}，detail={Detail}）。", abortResult.ExitCode, abortResult.Detail);
             _ = NotifyDegradedAsync("取消关机计划", "取消关机计划未生效，请检查系统关机计划状态");
         }
     }
 
-    /// <summary>取消系统关机计划并回收本地计划状态/窗口/定时器；返回取消命令退出码（适配点 1/3）。</summary>
-    private int StopAllStates()
+    private PowerCommandResult StopAllStates()
     {
-        var abortCode = SystemPowerCommand.RunCancelScheduledShutdown();
-        if (abortCode == 0)
+        var abortResult = SystemPowerCommand.RunCancelScheduledShutdown();
+        if (abortResult.ExitCode == PowerCommandResult.Ok)
         {
             _logger.LogInformation("已取消系统关机计划。");
         }
         else
         {
-            _logger.LogInformation("取消系统关机计划返回非零（exit={ExitCode}；无活动计划时属预期）。", abortCode);
+            _logger.LogInformation("取消系统关机计划返回非零（exit={ExitCode}；无活动计划时属预期）。", abortResult.ExitCode);
         }
 
         lock (StateLock)
@@ -269,7 +230,7 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
             CloseFloatingWindowProgrammatically();
         });
 
-        return abortCode;
+        return abortResult;
     }
 
     private static int GetRemainingSeconds()
@@ -352,7 +313,6 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
         countdownTimer.Tick += (_, _) =>
         {
             textBlock.Text = BuildCountdownText();
-            //progressBar.Value = BuildCountdownProgress();
 
             if (!IsPlanActive())
             {
@@ -385,12 +345,14 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
         immediateShutdownButton.Click += (_, _) =>
         {
             StopAllStates();
-            var exitCode = SystemPowerCommand.RunImmediateShutdown();
-            if (exitCode != 0)
+            var result = SystemPowerCommand.RunImmediateShutdown();
+            if (result.ExitCode != PowerCommandResult.Ok)
             {
-                // 适配点 4：U4——立即关机失败经 Toast 降级提示，不再静默。
-                _logger.LogError("执行立即关机失败（exit={ExitCode}）。", exitCode);
-                _ = NotifyDegradedAsync("立即关机", "立即关机命令未被执行");
+                _logger.LogError("执行立即关机失败（exit={ExitCode}，detail={Detail}）。", result.ExitCode, result.Detail);
+                _ = NotifyDegradedAsync("立即关机",
+                    result.ExitCode == PowerCommandResult.AccessDenied
+                        ? "立即关机未执行：系统拒绝了请求（可能需要系统授权）"
+                        : "立即关机命令未被执行");
             }
         };
 
@@ -408,7 +370,6 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
                 }
                 else
                 {
-                    // 适配点 3 + 06 条目 38：重计划不可用 → 撤销本地计划并回收窗口/定时器，Toast 通知失败原因。
                     StopAllStates();
                     await NotifyDegradedAsync("高级计时关机", "延长关机未生效，已取消本次关机计划");
                 }
@@ -572,7 +533,6 @@ public class AdvancedShutdownAction : ActionBase<AdvancedShutdownSettings>
         }
     }
 
-    // U4 降级通知（预检失败静默或 toast 提示，按已批口径二者取 toast；toast 自身失败仅记日志）。
     private async Task NotifyDegradedAsync(string title, string reason)
     {
         try

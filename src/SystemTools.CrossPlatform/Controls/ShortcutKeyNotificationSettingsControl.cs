@@ -5,7 +5,7 @@ using SystemTools.CrossPlatform.Settings;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 通用“当执行时发出提醒”行动设置控件（共享类型：本批 A11/A13/A14/A15 首引，后续批次复用）
+/// 通用“当执行时发出提醒”行动设置控件
 /// </summary>
 public class ShortcutKeyNotificationSettingsControl : ActionSettingsControlBase<ShortcutKeyNotificationSettings>
 {

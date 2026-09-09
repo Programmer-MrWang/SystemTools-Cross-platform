@@ -54,8 +54,6 @@ public class ToggleFloatingWindowProfileSettingsControl : ActionSettingsControlB
 
         try
         {
-            // 阶段 1 适配：悬浮窗服务（阶段 2 B 档交付）尚未存在，方案列表直接取自本批引入的
-            // FloatingWindowProfileManager（共享类型），行为与源（经服务 ProfileManager 取列表）一致。
             var profileManager = IAppHost.GetService<FloatingWindowProfileManager>();
             var profileNames = profileManager.GetProfileNames();
 

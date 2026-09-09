@@ -4,20 +4,11 @@
                      xmlns:ci="http://classisland.tech/schemas/xaml/core"
                      xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
                      x:CompileBindings="False">
-    <!-- 阶段 1 A 档骨架（礼部 p1-06）+ 阶段 3 批次一整合（兵部 p3-01，落点权威 p3-05 §2.1/§3.4）：
-         AI 服务选项组、「更多功能选项」导航（p1-06 既有）；
-         W1「启用功能选项」管理抽屉（源 :167-176/:21-149/:524-558，枚举白名单=注册面，重启走
-         SettingsPageBase.RequestRestart，源 RestartClassIsland 不迁）；W2「启用悬浮窗功能」开关组
-         （源 :199-206/:88-91）；A 面补全：页头标签（源 :153-165）+「当前使用模型」显示项
-         （源 :286-300，A 档 AiModel 消费适配）。源页 C 档面（实验性功能、扩展功能下载组、
-         AI 语音/液态玻璃组）零迁入（p3-05 §3.1 C1-C13）。显示文案随源不改。 -->
     <ci:DrawerHost x:Name="DrawerHost"
                    DrawerPlacement="Right"
                    IsDrawerOpen="{Binding ViewModel.IsFeatureDrawerOpen, Mode=TwoWay}"
                    DrawerContent="{Binding ViewModel.FeatureDrawerContent}">
 
-        <!-- W1 抽屉内容模板（源 SystemToolsSettingsPage.axaml:26-149 随源；DataGrid/DrawerHost 为
-             ClassIsland.Core 双分支既有消费面，p3-05 §6-2） -->
         <ci:DrawerHost.DrawerContentTemplate>
             <DataTemplate>
                 <Grid Width="500"
@@ -148,7 +139,6 @@
         <ScrollViewer>
             <StackPanel Classes="settings-container animated-intro">
 
-                <!-- A 面补全：页头标签（源 :153-165 随源；[HidePageTitle] 下页头随源自绘） -->
                 <Label FontSize="20"
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}">
@@ -163,8 +153,6 @@
                     <Label VerticalAlignment="Center" FontSize="28">功能 · 主设置</Label>
                 </StackPanel>
 
-                <!-- W1「启用功能选项」管理抽屉入口（源 :167-177 随源；清单枚举白名单见共享 VM
-                     InitializeFeatureItems，C 条目零呈现，p3-05 §3.4-3） -->
                 <controls:FASettingsExpander IconSource="{ci:FluentIconSource &#xE079;}"
                                              Header="启用功能选项"
                                              Description="选择需要本插件要启用的功能">
@@ -184,9 +172,6 @@
                                              Click="OnOpenMoreFeaturesClick"
                                              IsClickEnabled="True" />
 
-                <!-- W2「启用悬浮窗功能」开关组（源 :199-206 随源，随源相对序位于「更多功能选项」与
-                     「AI 服务」之间；成员 EnableFloatingWindowFeature MainConfigData.cs:332；重启等价
-                     口径 p1-06 §9-7） -->
                 <controls:FASettingsExpander IconSource="{ci:FluentIconSource &#xEA37;}"
                                              Header="启用悬浮窗功能"
                                              Description="关闭后将禁用悬浮窗相关全部功能">
@@ -250,10 +235,7 @@
                             </StackPanel>
                         </controls:FASettingsExpanderItem.Footer>
                     </controls:FASettingsExpanderItem>
-
-                    <!-- A 面补全：「当前使用模型」显示项（源 :286-300 适配：源为 Vosk 语音识别模型
-                         检查面（DependencyPaths，C13 不迁），按 p3-05 §3.4-2 改为 A 档 AiModel
-                         只读消费；描述文案随适配调整，其余随源） -->
+                    
                     <controls:FASettingsExpanderItem Content="当前使用模型"
                                                      Description="当前 AI 服务使用的模型；可通过上方“获取模型”选择。">
                         <controls:FASettingsExpanderItem.Footer>

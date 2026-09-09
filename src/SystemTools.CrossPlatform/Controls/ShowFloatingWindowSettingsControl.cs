@@ -7,8 +7,7 @@ using SystemTools.CrossPlatform.Settings;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 「显示悬浮窗」行动设置控件。抽取自源插件 Controls\ShowFloatingWindowSettingsControl.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整，其余逐行保留源实现）。
+/// 显示悬浮窗行动设置控件
 /// </summary>
 public class ShowFloatingWindowSettingsControl : ActionSettingsControlBase<ShowFloatingWindowSettings>
 {

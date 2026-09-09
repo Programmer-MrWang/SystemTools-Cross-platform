@@ -14,9 +14,5 @@ namespace SystemTools.CrossPlatform.Services;
 /// </summary>
 public interface IProcessMemoryMaintenanceService
 {
-    /// <summary>
-    /// 尝试修剪指定进程句柄的工作集；返回是否执行了实际修剪。
-    /// 实现不得抛出异常（失败以 false 返回，由调用方记日志留痕）。
-    /// </summary>
     bool TryTrimWorkingSet(IntPtr processHandle);
 }

@@ -5,13 +5,11 @@ using SystemTools.CrossPlatform.Settings;
 namespace SystemTools.CrossPlatform.Controls;
 
 /// <summary>
-/// 计时关机设置控件（p2-01 B4 附属；源锚点 E:\My Github Projects\SystemTools\Controls\ShutdownSettingsControl.cs 全 67 行随源，
-/// 仅命名空间与设置类型引用改写为 SystemTools.CrossPlatform.*）。
+/// 计时关机设置控件
 /// </summary>
 public class ShutdownSettingsControl : ActionSettingsControlBase<ShutdownSettings>
 {
     private NumericUpDown _secondsInput;
-    private CheckBox _promptCheckBox;
 
     public ShutdownSettingsControl()
     {
@@ -49,16 +47,6 @@ public class ShutdownSettingsControl : ActionSettingsControlBase<ShutdownSetting
         secondsPanel.Children.Add(_secondsInput);
         panel.Children.Add(secondsPanel);
 
-        _promptCheckBox = new CheckBox
-        {
-            Content = "不显示提示",
-            Margin = new Avalonia.Thickness(0, 5, 0, 0)
-        };
-
-        _promptCheckBox.IsCheckedChanged += (s, e) => { Settings.ShowPrompt = !(_promptCheckBox.IsChecked ?? false); };
-
-        panel.Children.Add(_promptCheckBox);
-
         Content = panel;
     }
 
@@ -66,6 +54,5 @@ public class ShutdownSettingsControl : ActionSettingsControlBase<ShutdownSetting
     {
         base.OnInitialized();
         _secondsInput.Value = Settings.Seconds;
-        _promptCheckBox.IsChecked = !Settings.ShowPrompt;
     }
 }

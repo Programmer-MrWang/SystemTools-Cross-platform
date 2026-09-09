@@ -26,8 +26,6 @@ public class MoveAction(ILogger<MoveAction> logger) : ActionBase<MoveSettings>
 
         try
         {
-            // 跨平台路径适配：源 :40-41 为 TrimEnd('\\')（仅剥离反斜杠）；
-            // 改用 BCL TrimEndingDirectorySeparator，同时正确处理 Windows 反斜杠与 Unix 斜杠。
             var sourcePath = Path.TrimEndingDirectorySeparator(Settings.SourcePath);
             var destPath = Path.TrimEndingDirectorySeparator(Settings.DestinationPath);
 
@@ -84,11 +82,6 @@ public class MoveAction(ILogger<MoveAction> logger) : ActionBase<MoveSettings>
                     Directory.Delete(finalDestPath, true);
                 }
 
-                // 文件夹分支跨平台适配（06 条目 35）：源 :96-111 经 shell 子进程调用外部命令行工具完成
-                // “递归复制后删除源”的移动；改为 BCL Directory.Move（同卷原子移动）优先，同卷移动产生
-                // IO 异常（典型为跨卷/挂载点差异）时回退为“BCL 递归复制 + 删除源目录”，与源移动语义等价；
-                // 部分完成（目标已复制但源删除失败）按失败处理并记录，不误报完整成功；路径参数直接传入
-                // BCL API、不经过 shell 拼接。
                 try
                 {
                     await Task.Run(() => Directory.Move(sourcePath, finalDestPath));
@@ -134,7 +127,6 @@ public class MoveAction(ILogger<MoveAction> logger) : ActionBase<MoveSettings>
         foreach (var dir in Directory.EnumerateDirectories(sourceDir))
         {
             var target = Path.Combine(destDir, Path.GetFileName(dir));
-            // 目标目录位于源目录内部时跳过该子树（与源外部工具的排除语义等价，避免把目标再复制进自身）。
             if (IsSamePath(dir, target))
             {
                 continue;

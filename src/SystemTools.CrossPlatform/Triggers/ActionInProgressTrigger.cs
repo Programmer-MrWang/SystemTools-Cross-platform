@@ -12,10 +12,7 @@ using SystemTools.CrossPlatform.Config;
 namespace SystemTools.CrossPlatform.Triggers;
 
 /// <summary>
-/// 「行动进行时」触发器。抽取自源插件 Triggers\ActionInProgressTrigger.cs（命名空间镜像、
-/// 功能 ID 按前缀规则变换、移除源侧未使用的 SystemTools.Utils 引用，其余逐行保留源实现；
-/// Timer 标识符按源语义（System.Timers，Elapsed 模式）完全限定消歧——构建期 ImplicitUsings
-/// 注入 System.Threading 与文件内 using System.Timers 并存致裸名歧义（CS0104），见批证据 §3-A13）。
+/// 行动进行时触发器
 /// </summary>
 [TriggerInfo("SystemTools.CrossPlatform.ActionInProgressTrigger", "行动进行时", "\uEAB7")]
 public class ActionInProgressTrigger : TriggerBase<ActionInProgressTriggerConfig>

@@ -5,8 +5,7 @@ using SystemTools.CrossPlatform.Config;
 namespace SystemTools.CrossPlatform.Settings;
 
 /// <summary>
-/// 「行动进行时」触发器设置控件。抽取自源插件 Settings\ActionInProgressTriggerSettings.cs
-/// （命名空间按 p1-05 §3.2 目录镜像规则调整并补充 Config 类型引用，其余逐行保留源实现）。
+/// 行动进行时触发器设置控件
 /// </summary>
 public class ActionInProgressTriggerSettings : TriggerSettingsControlBase<ActionInProgressTriggerConfig>
 {

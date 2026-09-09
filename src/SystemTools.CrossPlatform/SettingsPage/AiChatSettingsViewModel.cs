@@ -18,17 +18,6 @@ using SystemTools.CrossPlatform.Services;
 
 namespace SystemTools.CrossPlatform.SettingsPage;
 
-/// <summary>
-/// AI 对话视图模型。抽取自源插件 SettingsPage\AiChatSettingsViewModel.cs（源 1714 行，浮窗 AI 链引擎），
-/// 按 p1-04 证据 §5-1 契约交付（礼部 p1-06）：
-/// 1. 去语音构造：移除源 ctor 的语音识别服务参数（源 :66）与全部语音输入开关/提示/切换成员
-///    （源 :23-24、:56、:378-397、:798-918 等，04-spec S4.1 语音族 C / S7-R2 新插件无语音输入）；构造为 8 服务参 + 2 审批委托参，
-///    useVoiceWakePrompt/useTransientConversation 可选参保留且默认 false（浮窗路径恒默认 false）。
-/// 2. 浮窗消费的 29 个公共成员面保留（清单与源锚点见 p1-04 §5-1）。
-/// 3. MainConfigData.ShareAiRepliesWithClassIslandNotifications 为 p1-06 预批增补成员
-///    （源 MainConfigData.cs:368-380），供 IsClassIslandNotificationSharingEnabled 绑定消费。
-/// 除上述裁剪与命名空间镜像外，方法体逐行保留源实现。
-/// </summary>
 public partial class AiChatSettingsViewModel : ObservableObject, IDisposable
 {
     private readonly AiConversationStore _store;

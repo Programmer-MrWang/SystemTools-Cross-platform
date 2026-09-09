@@ -95,8 +95,6 @@ public class KillProcessSettingsControl : ActionSettingsControlBase<KillProcessS
     {
         try
         {
-            // 降级口径适配：源实现经启动系统命令行工具获取进程列表（Windows 专属），
-            // 此处改经 BCL 进程枚举跨平台获取（进程名 + PID），失败提示语义与源一致。
             var output = string.Join(Environment.NewLine, Process.GetProcesses()
                 .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
                 .Select(p => $"{p.ProcessName,-40}{p.Id,10}"));

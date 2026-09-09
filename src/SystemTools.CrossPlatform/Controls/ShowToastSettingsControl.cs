@@ -14,7 +14,6 @@ public class ShowToastSettingsControl : ActionSettingsControlBase<ShowToastSetti
     {
         var panel = new StackPanel { Spacing = 10, Margin = new(10) };
 
-        // 通知标题
         panel.Children.Add(new TextBlock
         {
             Text = "通知标题:",
@@ -28,7 +27,6 @@ public class ShowToastSettingsControl : ActionSettingsControlBase<ShowToastSetti
         };
         panel.Children.Add(_titleBox);
 
-        // 通知内容
         panel.Children.Add(new TextBlock
         {
             Text = "通知内容:",

@@ -1,5 +1,3 @@
-// 来源：SystemTools（主插件）Services\FloatingWindowIconProvider.cs（LGPL 同许可）。
-
 using System;
 using System.Globalization;
 using System.Text;
@@ -15,40 +13,23 @@ using FluentAvalonia.UI.Controls;
 namespace SystemTools.CrossPlatform.Services;
 
 /// <summary>
-/// 悬浮窗图标统一入口。完全采用 ClassIsland 的图标表达式协议：
-/// 配置只保存字符串表达式（如 fluent("…")、lucide("…")、img("C:\…")），
-/// 渲染时解析为 <see cref="FAIconSource"/>，并兼容旧版 /uXXXX 与单个字形字符。
+/// 悬浮窗图标统一入口
 /// </summary>
 public static class FloatingWindowIconProvider
 {
-    /// <summary>
-    /// 默认 Fluent 字形字符（与旧版悬浮窗触发器默认图标一致）。
-    /// </summary>
     public const string DefaultFluentGlyph = "\uea37";
 
     private static bool _imgHandlerEnsured;
     private static readonly object ImgHandlerLock = new();
 
-    /// <summary>
-    /// 新触发器使用的默认图标表达式。
-    /// </summary>
     public static string DefaultIconExpression => FormatExpression("fluent", DefaultFluentGlyph);
 
-    /// <summary>
-    /// 将参数格式化为图标表达式（转义规则与 ClassIsland 一致）。
-    /// </summary>
     public static string FormatExpression(string function, string argument) =>
         $"{function}(\"{argument.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t")}\")";
 
-    /// <summary>
-    /// 是否为旧版 /uXXXX 或 \uXXXX 形式的图标标记。
-    /// </summary>
     public static bool IsLegacyToken(string? raw) =>
         TryTokenToGlyph(raw) != null;
 
-    /// <summary>
-    /// 将旧版 /uXXXX / \uXXXX 标记转换为字形字符；非旧版格式返回 null。
-    /// </summary>
     public static string? TryTokenToGlyph(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -73,9 +54,6 @@ public static class FloatingWindowIconProvider
             : null;
     }
 
-    /// <summary>
-    /// 将任意历史格式规范化为图标表达式。旧版 /uXXXX 会转换为 fluent("…") 表达式。
-    /// </summary>
     public static string NormalizeForStorage(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -87,10 +65,6 @@ public static class FloatingWindowIconProvider
         return glyph != null ? FormatExpression("fluent", glyph) : raw.Trim();
     }
 
-    /// <summary>
-    /// 解析图标表达式为 <see cref="FAIconSource"/>。支持表达式、单个字形字符和旧版 /uXXXX 标记。
-    /// 解析失败或为空时返回 null。
-    /// </summary>
     public static FAIconSource? TryResolveIconSource(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -113,9 +87,6 @@ public static class FloatingWindowIconProvider
         return IconExpressionHelper.TryParseOrNull(value);
     }
 
-    /// <summary>
-    /// 解析 func("arg") 形式的表达式并返回函数名与参数。解析失败返回 false。
-    /// </summary>
     public static bool TryParseFunctionExpression(string? raw, out string function, out string argument)
     {
         function = string.Empty;
@@ -151,10 +122,6 @@ public static class FloatingWindowIconProvider
         return true;
     }
 
-    /// <summary>
-    /// 根据图标表达式创建用于显示的图标控件。支持 Fluent / Lucide / 图片及其余已注册的图标源，
-    /// 同时兼容旧版 /uXXXX 与单个字形字符；无效或为空时回退到默认图标。
-    /// </summary>
     /// <param name="iconExpression">图标表达式</param>
     /// <param name="size">图标尺寸（字体图标为字号，图片为宽高）</param>
     /// <param name="foreground">前景色（仅字体图标有效）</param>
@@ -167,7 +134,6 @@ public static class FloatingWindowIconProvider
 
         if (tokenGlyph == null && value is { Length: > 0 } && value.Length <= 2)
         {
-            // 单个字形字符（或代理对），按 Fluent 处理
             kind = "fluent";
         }
         else if (TryParseFunctionExpression(value, out var function, out var argument)
@@ -263,10 +229,6 @@ public static class FloatingWindowIconProvider
         return sb.ToString();
     }
 
-    /// <summary>
-    /// 确保注册 img 图标表达式处理器。新版本主程序已自带时（重复注册会抛异常）自动跳过；
-    /// 旧版本主程序由本插件补注册，保证图片图标在所有受支持版本上可用。
-    /// </summary>
     private static void EnsureImageExpressionHandler()
     {
         if (_imgHandlerEnsured)
